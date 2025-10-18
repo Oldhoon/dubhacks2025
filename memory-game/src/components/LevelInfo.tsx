@@ -12,7 +12,7 @@ export default function LevelInfo({
     <div className="panel panel-col">
       <PanelHeader title="Level" subtitle="Objective & context" />
       <div className="card pad">
-        <div className="level-title">{title}</div>
+        <h2 className="level-title">{title}</h2>
         <p className="level-desc">{description}</p>
       </div>
     </div>
