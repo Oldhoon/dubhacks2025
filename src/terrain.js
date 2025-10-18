@@ -35,17 +35,20 @@ export default class Terrain {
             texture.wrapT = THREE.RepeatWrapping;
             texture.magFilter = THREE.NearestFilter; // Pixelated look for low-poly style
             texture.minFilter = THREE.NearestFilter;
+            texture.colorSpace = THREE.SRGBColorSpace;
 
             // Create material with texture for top face
-            const topMaterial = new THREE.MeshLambertMaterial({
+            const topMaterial = new THREE.MeshStandardMaterial({
                 map: texture,
-                flatShading: true
+                roughness: 0.7,
+                metalness: 0.05
             });
 
             // Create solid color material for other faces
-            const sideMaterial = new THREE.MeshLambertMaterial({
+            const sideMaterial = new THREE.MeshStandardMaterial({
                 color: this.color,
-                flatShading: true
+                roughness: 0.9,
+                metalness: 0.05
             });
 
             // Box faces order: right, left, top, bottom, front, back
@@ -59,9 +62,10 @@ export default class Terrain {
             ];
         } else {
             // No texture, use single color material
-            materials = new THREE.MeshLambertMaterial({
+            materials = new THREE.MeshStandardMaterial({
                 color: this.color,
-                flatShading: true
+                roughness: 0.9,
+                metalness: 0.05
             });
         }
 

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
 import Crosshair from './crosshair.js';
+import { loadFBXAsync } from './setup.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -35,16 +37,24 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.physicallyCorrectLights = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 const container = document.getElementById('game-container');
 if (!container) {
     throw new Error('Game container element with ID "game-container" not found');
 }
 container.appendChild(renderer.domElement);
 
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const environmentTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environment = environmentTexture;
+pmremGenerator.dispose();
+
 // Lighting setup
-// Ambient light for overall scene illumination
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x222222, 0.35);
+scene.add(hemiLight);
 
 // Directional light (sun) with shadows
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -60,9 +70,10 @@ scene.add(directionalLight);
 
 // Flat plane terrain (low-poly style)
 const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
-const planeMaterial = new THREE.MeshLambertMaterial({ 
+const planeMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x3a9d3a,
-    flatShading: true // Low-poly effect
+    roughness: 0.85,
+    metalness: 0.05
 });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.rotation.x = -Math.PI / 2;
@@ -76,9 +87,10 @@ const characterGeometry = new THREE.CapsuleGeometry(
     CHARACTER_RADIAL_SEGMENTS, 
     CHARACTER_HEIGHT_SEGMENTS
 );
-const characterMaterial = new THREE.MeshLambertMaterial({ 
+const characterMaterial = new THREE.MeshStandardMaterial({ 
     color: 0xff6b6b,
-    flatShading: true // Low-poly effect
+    roughness: 0.4,
+    metalness: 0.2
 });
 const character = new THREE.Mesh(characterGeometry, characterMaterial);
 character.position.y = 1;
@@ -106,6 +118,62 @@ catapult.attachTo(starterTile);
 const crosshair = new Crosshair();
 crosshair.attachTo(camera);
 
+const BRIDGE_MODEL_PATH = new URL('../assets/fbx/PP_Bridge_15_Middle.fbx', import.meta.url);
+const BRIDGE_TEXTURE_PATH = new URL('../assets/fbx/PP_Color_Palette.png', import.meta.url);
+const BRIDGE_DEFAULT_SCALE = 0.01;
+const BRIDGE_POSITION = new THREE.Vector3(0, 0, 0);
+const bridgeTexture = new THREE.TextureLoader().load(BRIDGE_TEXTURE_PATH.href);
+bridgeTexture.colorSpace = THREE.SRGBColorSpace;
+bridgeTexture.flipY = false;
+
+function ensureStandardMaterial(material, fallbackMap) {
+    if (Array.isArray(material)) {
+        return material.map((mat) => ensureStandardMaterial(mat, fallbackMap));
+    }
+    if (!material) {
+        return material;
+    }
+    if (!material.isMeshStandardMaterial) {
+        const converted = new THREE.MeshStandardMaterial({
+            color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+            map: material.map ?? fallbackMap ?? null,
+            normalMap: material.normalMap ?? null,
+            roughness: 0.7,
+            metalness: 0.1
+        });
+        if (converted.map) {
+            converted.map.colorSpace = THREE.SRGBColorSpace;
+            converted.map.flipY = false;
+            converted.needsUpdate = true;
+        }
+        converted.name = material.name;
+        return converted;
+    }
+    if (material.map) {
+        material.map.colorSpace = THREE.SRGBColorSpace;
+        material.map.flipY = false;
+    } else if (fallbackMap) {
+        material.map = fallbackMap;
+        material.needsUpdate = true;
+    }
+    material.envMapIntensity = 1.0;
+    material.color = material.color ?? new THREE.Color(0xffffff);
+    material.needsUpdate = true;
+    return material;
+}
+
+loadFBXAsync([BRIDGE_MODEL_PATH.href], ([bridge]) => {
+    bridge.scale.setScalar(BRIDGE_DEFAULT_SCALE);
+    bridge.position.copy(BRIDGE_POSITION);
+    bridge.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material = ensureStandardMaterial(child.material, bridgeTexture);
+        }
+    });
+    scene.add(bridge);
+});
 
 
 // Grid definition with textured tiles
