@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
+import Crosshair from './crosshair.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -27,6 +28,7 @@ const camera = new THREE.PerspectiveCamera(
 // Camera 45° down, but not rotated sideways
 camera.position.set(0, 15, 20);  // angle downward
 camera.lookAt(0, 0, 0);
+scene.add(camera);
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -101,6 +103,8 @@ const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH);
 const starterTile = createGrassTile();
 const catapult = new Catapult();
 catapult.attachTo(starterTile);
+const crosshair = new Crosshair();
+crosshair.attachTo(camera);
 
 
 
