@@ -5,82 +5,63 @@ const TERRAIN_COLOR = 0x228B22; // Forest green
 const TERRAIN_DEPTH = 1;
 
 /**
- * Terrain class representing a simple square block with optional texture overlay
+ * Terrain class representing a single square of ground.
+ * It can either generate its own primitive geometry or use a supplied mesh factory.
  */
 export default class Terrain {
-    constructor(size = TERRAIN_SIZE, color = TERRAIN_COLOR, texturePath = null) {
+    constructor(options = {}) {
+        if (typeof options === 'number') {
+            options = { size: options };
+        }
+
+        const {
+            size = TERRAIN_SIZE,
+            color = TERRAIN_COLOR,
+            depth = TERRAIN_DEPTH,
+            meshFactory = null,
+        } = options;
+
         this.size = size;
         this.color = color;
-        this.depth = TERRAIN_DEPTH;
-        this.texturePath = texturePath;
+        this.depth = depth;
+        this.meshFactory = meshFactory;
         this.mesh = this.createTerrain();
     }
 
     /**
-     * Creates a simple square block terrain with optional texture on top
-     * @returns {THREE.Mesh} The terrain mesh
+     * Creates a simple square block terrain or delegates to the provided mesh factory.
+     * @returns {THREE.Object3D} The terrain mesh or group.
      */
     createTerrain() {
+        if (typeof this.meshFactory === 'function') {
+            const mesh = this.meshFactory();
+            if (!mesh) {
+                throw new Error('Terrain meshFactory must return a THREE.Object3D.');
+            }
+            return mesh;
+        }
+
         // Create a box geometry for a simple square block
         const geometry = new THREE.BoxGeometry(this.size, this.depth, this.size);
 
-        // Create materials array for each face of the box
-        let materials;
+        const material = new THREE.MeshStandardMaterial({
+            color: this.color,
+            roughness: 0.9,
+            metalness: 0.05,
+        });
 
-        if (this.texturePath) {
-            // Load texture for the top face
-            const textureLoader = new THREE.TextureLoader();
-            const texture = textureLoader.load(this.texturePath);
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            texture.magFilter = THREE.NearestFilter; // Pixelated look for low-poly style
-            texture.minFilter = THREE.NearestFilter;
-            texture.colorSpace = THREE.SRGBColorSpace;
-
-            // Create material with texture for top face
-            const topMaterial = new THREE.MeshStandardMaterial({
-                map: texture,
-                roughness: 0.7,
-                metalness: 0.05
-            });
-
-            // Create solid color material for other faces
-            const sideMaterial = new THREE.MeshStandardMaterial({
-                color: this.color,
-                roughness: 0.9,
-                metalness: 0.05
-            });
-
-            // Box faces order: right, left, top, bottom, front, back
-            materials = [
-                sideMaterial, // right
-                sideMaterial, // left
-                topMaterial,  // top (this is where the texture goes)
-                sideMaterial, // bottom
-                sideMaterial, // front
-                sideMaterial  // back
-            ];
-        } else {
-            // No texture, use single color material
-            materials = new THREE.MeshStandardMaterial({
-                color: this.color,
-                roughness: 0.9,
-                metalness: 0.05
-            });
-        }
-
-        const mesh = new THREE.Mesh(geometry, materials);
+        const mesh = new THREE.Mesh(geometry, material);
         mesh.receiveShadow = true;
         mesh.castShadow = true;
 
         // Position the block so its top is at y = 0
-        mesh.position.y = -0.25;
+        mesh.position.y = -this.depth / 2;
 
         return mesh;
     }
 
     /**
-     * Adds the terrain to a scene
+     * Adds the terrain to a scene.
      * @param {THREE.Scene} scene - The Three.js scene
      */
     addToScene(scene) {
@@ -88,7 +69,7 @@ export default class Terrain {
     }
 
     /**
-     * Removes the terrain from a scene
+     * Removes the terrain from a scene.
      * @param {THREE.Scene} scene - The Three.js scene
      */
     removeFromScene(scene) {
@@ -96,12 +77,26 @@ export default class Terrain {
     }
 
     /**
-     * Updates the terrain color
+     * Updates the terrain color. Only applies to primitive terrains with a single material.
      * @param {number} color - The new color in hex format
      */
     setColor(color) {
         this.color = color;
-        this.mesh.material.color.setHex(color);
+        const { material } = this.mesh;
+        if (!material) {
+            return;
+        }
+        if (Array.isArray(material)) {
+            material.forEach((mat) => {
+                if (mat && mat.color) {
+                    mat.color.setHex(color);
+                }
+            });
+            return;
+        }
+        if (material.color) {
+            material.color.setHex(color);
+        }
     }
 
     get object3d() {

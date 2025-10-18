@@ -16,8 +16,11 @@ async function loadGLTFAsync(files, postLoading) {
         }
     };
     const loader = new GLTFLoader(manager);
-    let models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
-    postLoading(models);
+    const models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
+    if (typeof postLoading === 'function') {
+        postLoading(models);
+    }
+    return models;
 }
 
 async function loadOBJAsync(files, postLoading) {
@@ -33,8 +36,11 @@ async function loadOBJAsync(files, postLoading) {
         }
     };
     const loader = new OBJLoader(manager);
-    let models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
-    postLoading(models);
+    const models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
+    if (typeof postLoading === 'function') {
+        postLoading(models);
+    }
+    return models;
 }
 
 async function loadFBXAsync(files, postLoading) {
@@ -52,7 +58,10 @@ async function loadFBXAsync(files, postLoading) {
 
     const loader = new FBXLoader(manager);
     const models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
-    postLoading(models);
+    if (typeof postLoading === 'function') {
+        postLoading(models);
+    }
+    return models;
 }
 
 export {loadGLTFAsync, loadOBJAsync, loadFBXAsync};

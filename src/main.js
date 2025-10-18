@@ -109,26 +109,12 @@ window.addEventListener('resize', () => {
   });
 
 
-// Grass tiles across the entire grid
-const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
-const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH);
-const starterTile = createGrassTile();
-const catapult = new Catapult();
-catapult.attachTo(starterTile);
-const crosshair = new Crosshair();
-crosshair.attachTo(camera);
+const TILE_MODEL_PATH = new URL('../assets/fbx/PP_Meadow_07.fbx', import.meta.url);
+const TILE_DEFAULT_SCALE = 0.01;
 
-const BRIDGE_MODEL_PATH = new URL('../assets/fbx/PP_Bridge_15_Middle.fbx', import.meta.url);
-const BRIDGE_TEXTURE_PATH = new URL('../assets/fbx/PP_Color_Palette.png', import.meta.url);
-const BRIDGE_DEFAULT_SCALE = 0.01;
-const BRIDGE_POSITION = new THREE.Vector3(0, 0, 0);
-const bridgeTexture = new THREE.TextureLoader().load(BRIDGE_TEXTURE_PATH.href);
-bridgeTexture.colorSpace = THREE.SRGBColorSpace;
-bridgeTexture.flipY = false;
-
-function ensureStandardMaterial(material, fallbackMap) {
+function ensureStandardMaterial(material) {
     if (Array.isArray(material)) {
-        return material.map((mat) => ensureStandardMaterial(mat, fallbackMap));
+        return material.map(ensureStandardMaterial);
     }
     if (!material) {
         return material;
@@ -136,7 +122,7 @@ function ensureStandardMaterial(material, fallbackMap) {
     if (!material.isMeshStandardMaterial) {
         const converted = new THREE.MeshStandardMaterial({
             color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
-            map: material.map ?? fallbackMap ?? null,
+            map: material.map ?? null,
             normalMap: material.normalMap ?? null,
             roughness: 0.7,
             metalness: 0.1
@@ -144,81 +130,114 @@ function ensureStandardMaterial(material, fallbackMap) {
         if (converted.map) {
             converted.map.colorSpace = THREE.SRGBColorSpace;
             converted.map.flipY = false;
-            converted.needsUpdate = true;
         }
         converted.name = material.name;
+        converted.needsUpdate = true;
         return converted;
     }
     if (material.map) {
         material.map.colorSpace = THREE.SRGBColorSpace;
         material.map.flipY = false;
-    } else if (fallbackMap) {
-        material.map = fallbackMap;
-        material.needsUpdate = true;
     }
     material.envMapIntensity = 1.0;
-    material.color = material.color ?? new THREE.Color(0xffffff);
     material.needsUpdate = true;
     return material;
 }
 
-loadFBXAsync([BRIDGE_MODEL_PATH.href], ([bridge]) => {
-    bridge.scale.setScalar(BRIDGE_DEFAULT_SCALE);
-    bridge.position.copy(BRIDGE_POSITION);
-    bridge.traverse((child) => {
+function prepareFBXObject(object3d) {
+    object3d.traverse((child) => {
         if (child.isMesh) {
+            child.material = ensureStandardMaterial(child.material);
             child.castShadow = true;
             child.receiveShadow = true;
-            child.material = ensureStandardMaterial(child.material, bridgeTexture);
         }
     });
-    scene.add(bridge);
-});
-
-
-// Grid definition with textured tiles
-const GRID_ROWS = 5;
-const GRID_COLS = 5;
-const GRID = Array.from({ length: GRID_ROWS }, () =>
-  Array.from({ length: GRID_COLS }, () => createGrassTile())
-);
-GRID[2][0] = starterTile; // maintain the catapult's ground tile
-
-
-// --- grid constants
-const TILE_SIZE = 3;         // spacing in world units
-const ROWS = GRID.length;
-const COLS = GRID[0].length;
-
-function gridToWorld(col, row) {
-  const offsetX = (COLS - 1) * 0.5;
-  const offsetZ = (ROWS - 1) * 0.5;
-  return {
-    x: (col - offsetX) * TILE_SIZE,
-    z: (row - offsetZ) * TILE_SIZE,
-  };
 }
 
-// Build / place tiles
-for (let r = 0; r < ROWS; r++) {
-  for (let c = 0; c < COLS; c++) {
-    let tile = GRID[r][c];
-    if (!(tile instanceof Terrain)) {
-      tile = new Terrain();
-      GRID[r][c] = tile;
+const catapult = new Catapult();
+const crosshair = new Crosshair();
+crosshair.attachTo(camera);
+
+async function initializeTiles() {
+    const [tileTemplate] = await loadFBXAsync([TILE_MODEL_PATH.href]);
+    tileTemplate.scale.setScalar(TILE_DEFAULT_SCALE);
+    prepareFBXObject(tileTemplate);
+    const tileBounds = new THREE.Box3().setFromObject(tileTemplate);
+    const tileHeight = tileBounds.max.y - tileBounds.min.y;
+    const tileBaseOffset = -tileBounds.min.y;
+    const tileWorldSize = Math.max(tileBounds.max.x - tileBounds.min.x, tileBounds.max.z - tileBounds.min.z) || 3;
+
+    const createTileMeshInstance = () => {
+        const clone = tileTemplate.clone(true);
+        clone.traverse((child) => {
+            if (child.isMesh) {
+                if (Array.isArray(child.material)) {
+                    child.material = child.material.map((mat) => ensureStandardMaterial(mat.clone()));
+                } else if (child.material) {
+                    child.material = ensureStandardMaterial(child.material.clone());
+                }
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        clone.position.y += tileBaseOffset;
+        return clone;
+    };
+
+    const createTile = () => new Terrain({
+        depth: tileHeight,
+        meshFactory: createTileMeshInstance
+    });
+
+    const starterTile = createTile();
+
+    // Grid definition using FBX tiles
+    const GRID_ROWS = 5;
+    const GRID_COLS = 5;
+    const GRID = Array.from({ length: GRID_ROWS }, () =>
+      Array.from({ length: GRID_COLS }, () => createTile())
+    );
+    GRID[2][0] = starterTile; // maintain the catapult's ground tile
+
+    catapult.attachTo(starterTile);
+
+    const ROWS = GRID.length;
+    const COLS = GRID[0].length;
+
+    function gridToWorld(col, row) {
+      const offsetX = (COLS - 1) * 0.5;
+      const offsetZ = (ROWS - 1) * 0.5;
+      return {
+        x: (col - offsetX) * tileWorldSize,
+        z: (row - offsetZ) * tileWorldSize,
+      };
     }
 
-    const { x, z } = gridToWorld(c, r);
-    const obj = tile.mesh;
+    // Build / place tiles
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        let tile = GRID[r][c];
+        if (!(tile instanceof Terrain)) {
+          tile = createTile();
+          GRID[r][c] = tile;
+        }
 
-    // set world X/Z (Y already handled by Terrain)
-    obj.position.x = x;
-    obj.position.z = z;
+        const { x, z } = gridToWorld(c, r);
+        const obj = tile.mesh;
 
-    // add once
-    scene.add(obj);
-  }
+        // set world X/Z (Y already handled by Terrain)
+        obj.position.x = x;
+        obj.position.z = z;
+
+        // add once
+        scene.add(obj);
+      }
+    }
 }
+
+initializeTiles().catch((error) => {
+    console.error('Failed to initialize FBX tiles:', error);
+});
 
 
 
