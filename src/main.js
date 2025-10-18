@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import Terrain from './terrain.js';
+import Catapult from './catapult.js';
+import Crosshair from './crosshair.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -13,21 +16,19 @@ const ROTATION_SPEED = 0.01;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue background
 
-// Isometric camera setup
+// Perspective camera setup (adds depth to ground)
 const aspect = window.innerWidth / window.innerHeight;
-const frustumSize = 10;
-const camera = new THREE.OrthographicCamera(
-    frustumSize * aspect / -2,
-    frustumSize * aspect / 2,
-    frustumSize / 2,
-    frustumSize / -2,
+const camera = new THREE.PerspectiveCamera(
+    45,    // Field of view (smaller = zoomed in, larger = more wide angle)
+    aspect,
     0.1,
     1000
 );
 
-// Position camera for isometric view (45 degrees horizontal, ~35 degrees vertical)
-camera.position.set(10, 10, 10);
+// Camera 45° down, but not rotated sideways
+camera.position.set(0, 15, 20);  // angle downward
 camera.lookAt(0, 0, 0);
+scene.add(camera);
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -84,16 +85,80 @@ character.position.y = 1;
 character.castShadow = true;
 scene.add(character);
 
+// Add terrain block using Terrain class
+// const terrainBlock = new Terrain();
+// terrainBlock.addToScene(scene);
+
 // Handle window resize
 window.addEventListener('resize', () => {
-    const aspect = window.innerWidth / window.innerHeight;
-    camera.left = frustumSize * aspect / -2;
-    camera.right = frustumSize * aspect / 2;
-    camera.top = frustumSize / 2;
-    camera.bottom = frustumSize / -2;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
+  });
+
+
+// Grass tiles across the entire grid
+const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
+const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH);
+const starterTile = createGrassTile();
+const catapult = new Catapult();
+catapult.attachTo(starterTile);
+const crosshair = new Crosshair();
+crosshair.attachTo(camera);
+
+
+
+// Grid definition with textured tiles
+const GRID_ROWS = 5;
+const GRID_COLS = 5;
+const GRID = Array.from({ length: GRID_ROWS }, () =>
+  Array.from({ length: GRID_COLS }, () => createGrassTile())
+);
+GRID[2][0] = starterTile; // maintain the catapult's ground tile
+
+
+// --- grid constants
+const TILE_SIZE = 3;         // spacing in world units
+const ROWS = GRID.length;
+const COLS = GRID[0].length;
+
+function gridToWorld(col, row) {
+  const offsetX = (COLS - 1) * 0.5;
+  const offsetZ = (ROWS - 1) * 0.5;
+  return {
+    x: (col - offsetX) * TILE_SIZE,
+    z: (row - offsetZ) * TILE_SIZE,
+  };
+}
+
+// Build / place tiles
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    let tile = GRID[r][c];
+    if (!(tile instanceof Terrain)) {
+      tile = new Terrain();
+      GRID[r][c] = tile;
+    }
+
+    const { x, z } = gridToWorld(c, r);
+    const obj = tile.mesh;
+
+    // set world X/Z (Y already handled by Terrain)
+    obj.position.x = x;
+    obj.position.z = z;
+
+    // add once
+    scene.add(obj);
+  }
+}
+
+
+
+
+
+
+
+
 
 // Animation loop
 function animate() {
