@@ -158,14 +158,44 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
 
 .console-actions { display: flex; align-items: center; gap: 8px; }
 .console-theme-select {
-  background: rgba(17, 17, 17, 0.85);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--console-select-bg);
   color: inherit;
-  border: 1px solid var(--console-border);
+  border: 1px solid var(--console-select-border);
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 4px 28px 4px 12px;
   font-size: 13px;
+  font-family: inherit;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
-.console-theme-select:focus { outline: 2px solid #646cff; outline-offset: 1px; }
+.console-theme-select:hover {
+  border-color: var(--console-select-border-hover);
+  background-color: var(--console-select-bg-hover);
+}
+.console-theme-select:focus {
+  outline: 2px solid rgba(100, 108, 255, 0.35);
+  outline-offset: 1px;
+}
+.console-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.console-select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--console-select-arrow);
+  pointer-events: none;
+}
 
 /* right column stacking; add .grow to panels that should fill space */
 .right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
@@ -186,6 +216,11 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
   --console-ident: #facc15;
   --console-comment: #9ca3af;
   --console-preproc: #34d399;
+  --console-select-bg: rgba(255, 255, 255, 0.03);
+  --console-select-bg-hover: rgba(255, 255, 255, 0.06);
+  --console-select-border: rgba(255, 255, 255, 0.2);
+  --console-select-border-hover: rgba(255, 255, 255, 0.35);
+  --console-select-arrow: rgba(255, 255, 255, 0.6);
 }
 
 .code-console.console-theme-monokai {
@@ -199,6 +234,11 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
   --console-ident: #a6e22e;
   --console-comment: #75715e;
   --console-preproc: #66d9ef;
+  --console-select-bg: rgba(255, 255, 255, 0.05);
+  --console-select-bg-hover: rgba(255, 255, 255, 0.08);
+  --console-select-border: rgba(248, 248, 242, 0.12);
+  --console-select-border-hover: rgba(248, 248, 242, 0.25);
+  --console-select-arrow: rgba(248, 248, 242, 0.65);
 }
 
 .code-console.console-theme-solarized-dark {
@@ -212,6 +252,11 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
   --console-ident: #b58900;
   --console-comment: #586e75;
   --console-preproc: #cb4b16;
+  --console-select-bg: rgba(238, 232, 213, 0.08);
+  --console-select-bg-hover: rgba(238, 232, 213, 0.12);
+  --console-select-border: rgba(238, 232, 213, 0.2);
+  --console-select-border-hover: rgba(238, 232, 213, 0.32);
+  --console-select-arrow: rgba(238, 232, 213, 0.7);
 }
 
 .code-console.console-theme-dracula {
@@ -225,6 +270,11 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
   --console-ident: #8be9fd;
   --console-comment: #6272a4;
   --console-preproc: #50fa7b;
+  --console-select-bg: rgba(248, 248, 242, 0.05);
+  --console-select-bg-hover: rgba(248, 248, 242, 0.09);
+  --console-select-border: rgba(248, 248, 242, 0.2);
+  --console-select-border-hover: rgba(248, 248, 242, 0.35);
+  --console-select-arrow: rgba(248, 248, 242, 0.65);
 }
 
 .code-console.console-theme-one-light {
@@ -238,11 +288,11 @@ button:focus, button:focus-visible { outline: 4px auto -webkit-focus-ring-color;
   --console-ident: #0184bc;
   --console-comment: #a0a1a7;
   --console-preproc: #e45649;
-}
-.code-console.console-theme-one-light .console-theme-select {
-  background: rgba(255, 255, 255, 0.9);
-  color: #111;
-  border-color: #d1d5db;
+  --console-select-bg: rgba(0, 0, 0, 0.04);
+  --console-select-bg-hover: rgba(0, 0, 0, 0.07);
+  --console-select-border: rgba(0, 0, 0, 0.12);
+  --console-select-border-hover: rgba(0, 0, 0, 0.25);
+  --console-select-arrow: rgba(0, 0, 0, 0.55);
 }
 
 /* light mode overrides */

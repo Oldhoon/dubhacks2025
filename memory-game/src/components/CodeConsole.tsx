@@ -126,17 +126,19 @@ export default function CodeConsole({ lines, grow, themeId, onThemeChange }: Cod
         subtitle="Live C code output"
         right={
           <div className="console-actions">
-            <select
-              className="console-theme-select"
-              value={activeTheme}
-              onChange={handleThemeChange}
-            >
-              {themeOptions.map(opt => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.name}
-                </option>
-              ))}
-            </select>
+            <div className="console-select-wrap">
+              <select
+                className="console-theme-select"
+                value={activeTheme}
+                onChange={handleThemeChange}
+              >
+                {themeOptions.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button className="btn xs" onClick={copyAll}>Copy</button>
           </div>
         }
