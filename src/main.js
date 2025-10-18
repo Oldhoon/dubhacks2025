@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
-import { loadGLTFAsync, loadOBJAsync } from './setup.js';
+import Catapult from './catapult.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -95,33 +95,22 @@ window.addEventListener('resize', () => {
   });
 
 
-const starterTile = new Terrain(3, 0x117A11);
+// Grass tiles across the entire grid
+const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
+const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH);
+const starterTile = createGrassTile();
+const catapult = new Catapult();
+catapult.attachTo(starterTile);
 
 
 
-let catapult;
-
-loadGLTFAsync(["assets/catapult/scene.gltf"], function(models) {
-    catapult = models[0].scene;
-    catapult.scale.set(0.2, 0.2, 0.2);
-  
-    // place catapult on top of the tile (local coords)
-    catapult.position.set(-0.5, starterTile.depth / 2 + 0.1, 0.5);
-  
-    // parent into the tile's local frame
-    starterTile.mesh.add(catapult);
-  });
-
-
-
-// Grid definition (0 = empty, 1 = grass, 2 = building, 3 = power, 4 = hole, 5 = start)
-const GRID = [
-    [null,          null,           null,           null,           null],
-    [null,          null,           null,           null,           null],
-    [starterTile,   null,           null,           null,           null],
-    [null,          null,           null,           null,           null],
-    [null,          null,           null,           null,           null]
-  ];
+// Grid definition with textured tiles
+const GRID_ROWS = 5;
+const GRID_COLS = 5;
+const GRID = Array.from({ length: GRID_ROWS }, () =>
+  Array.from({ length: GRID_COLS }, () => createGrassTile())
+);
+GRID[2][0] = starterTile; // maintain the catapult's ground tile
 
 
 // --- grid constants

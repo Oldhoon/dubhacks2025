@@ -1,34 +1,71 @@
 import * as THREE from 'three';
 
-const TERRAIN_SIZE = 3; 
+const TERRAIN_SIZE = 3;
 const TERRAIN_COLOR = 0x228B22; // Forest green
 const TERRAIN_DEPTH = 1;
+
 /**
- * Terrain class representing a simple square block
+ * Terrain class representing a simple square block with optional texture overlay
  */
 export default class Terrain {
-    constructor(size = TERRAIN_SIZE, color = TERRAIN_COLOR) {
+    constructor(size = TERRAIN_SIZE, color = TERRAIN_COLOR, texturePath = null) {
         this.size = size;
         this.color = color;
-        this.depth = TERRAIN_DEPTH
+        this.depth = TERRAIN_DEPTH;
+        this.texturePath = texturePath;
         this.mesh = this.createTerrain();
     }
 
     /**
-     * Creates a simple square block terrain
+     * Creates a simple square block terrain with optional texture on top
      * @returns {THREE.Mesh} The terrain mesh
      */
     createTerrain() {
         // Create a box geometry for a simple square block
         const geometry = new THREE.BoxGeometry(this.size, this.depth, this.size);
 
-        // Low-poly material with flat shading
-        const material = new THREE.MeshLambertMaterial({
-            color: this.color,
-            flatShading: true
-        });
+        // Create materials array for each face of the box
+        let materials;
 
-        const mesh = new THREE.Mesh(geometry, material);
+        if (this.texturePath) {
+            // Load texture for the top face
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(this.texturePath);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.magFilter = THREE.NearestFilter; // Pixelated look for low-poly style
+            texture.minFilter = THREE.NearestFilter;
+
+            // Create material with texture for top face
+            const topMaterial = new THREE.MeshLambertMaterial({
+                map: texture,
+                flatShading: true
+            });
+
+            // Create solid color material for other faces
+            const sideMaterial = new THREE.MeshLambertMaterial({
+                color: this.color,
+                flatShading: true
+            });
+
+            // Box faces order: right, left, top, bottom, front, back
+            materials = [
+                sideMaterial, // right
+                sideMaterial, // left
+                topMaterial,  // top (this is where the texture goes)
+                sideMaterial, // bottom
+                sideMaterial, // front
+                sideMaterial  // back
+            ];
+        } else {
+            // No texture, use single color material
+            materials = new THREE.MeshLambertMaterial({
+                color: this.color,
+                flatShading: true
+            });
+        }
+
+        const mesh = new THREE.Mesh(geometry, materials);
         mesh.receiveShadow = true;
         mesh.castShadow = true;
 
