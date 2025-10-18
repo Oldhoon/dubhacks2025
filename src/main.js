@@ -1,5 +1,14 @@
 import * as THREE from 'three';
 
+// Configuration constants
+const TERRAIN_SIZE = 20;
+const TERRAIN_SEGMENTS = 10;
+const CHARACTER_RADIUS = 0.3;
+const CHARACTER_HEIGHT = 1;
+const CHARACTER_RADIAL_SEGMENTS = 4;
+const CHARACTER_HEIGHT_SEGMENTS = 8;
+const ROTATION_SPEED = 0.01;
+
 // Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue background
@@ -25,7 +34,11 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.getElementById('game-container').appendChild(renderer.domElement);
+const container = document.getElementById('game-container');
+if (!container) {
+    throw new Error('Game container element not found');
+}
+container.appendChild(renderer.domElement);
 
 // Lighting setup
 // Ambient light for overall scene illumination
@@ -45,7 +58,7 @@ directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
 
 // Flat plane terrain (low-poly style)
-const planeGeometry = new THREE.PlaneGeometry(20, 20, 10, 10);
+const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
 const planeMaterial = new THREE.MeshLambertMaterial({ 
     color: 0x3a9d3a,
     flatShading: true // Low-poly effect
@@ -56,7 +69,12 @@ plane.receiveShadow = true;
 scene.add(plane);
 
 // Character (simple low-poly capsule for now)
-const characterGeometry = new THREE.CapsuleGeometry(0.3, 1, 4, 8);
+const characterGeometry = new THREE.CapsuleGeometry(
+    CHARACTER_RADIUS, 
+    CHARACTER_HEIGHT, 
+    CHARACTER_RADIAL_SEGMENTS, 
+    CHARACTER_HEIGHT_SEGMENTS
+);
 const characterMaterial = new THREE.MeshLambertMaterial({ 
     color: 0xff6b6b,
     flatShading: true // Low-poly effect
@@ -82,7 +100,7 @@ function animate() {
     requestAnimationFrame(animate);
     
     // Simple character rotation animation for demonstration
-    character.rotation.y += 0.01;
+    character.rotation.y += ROTATION_SPEED;
     
     renderer.render(scene, camera);
 }
