@@ -96,6 +96,16 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+// Raycaster and mouse for tile interaction
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredTile = null;
+const clickedTiles = new Set(); // Store tiles that have been clicked
+
+// Color constants for interactions
+const HOVER_COLOR = 0xffff00; // Yellow for hover
+const CLICK_COLOR = 0xff0000;  // Red for clicked tiles
+
 
 // Grass tiles across the entire grid
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
@@ -147,6 +157,10 @@ for (let r = 0; r < ROWS; r++) {
     obj.position.x = x;
     obj.position.z = z;
 
+    // Store original color for each tile
+    tile.originalColor = tile.color;
+    tile.isClicked = false;
+
     // add once
     scene.add(obj);
   }
@@ -159,6 +173,109 @@ for (let r = 0; r < ROWS; r++) {
 
 
 
+
+// Mouse move event for hover effect
+window.addEventListener('mousemove', (event) => {
+    // Calculate mouse position in normalized device coordinates (-1 to +1)
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Update raycaster
+    raycaster.setFromCamera(mouse, camera);
+
+    // Get all tile meshes
+    const tileMeshes = [];
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            tileMeshes.push(GRID[r][c].mesh);
+        }
+    }
+
+    // Check for intersections
+    const intersects = raycaster.intersectObjects(tileMeshes, false);
+
+    // Reset previous hover if exists and not clicked
+    if (hoveredTile && !hoveredTile.isClicked) {
+        hoveredTile.setColor(hoveredTile.originalColor);
+    }
+
+    // Set new hover
+    if (intersects.length > 0) {
+        const intersectedMesh = intersects[0].object;
+        
+        // Find the tile from the mesh
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const tile = GRID[r][c];
+                if (tile.mesh === intersectedMesh) {
+                    hoveredTile = tile;
+                    // Only change color if not clicked
+                    if (!tile.isClicked) {
+                        tile.setColor(HOVER_COLOR);
+                    }
+                    break;
+                }
+            }
+        }
+    } else {
+        hoveredTile = null;
+    }
+});
+
+// Mouse click event for permanent color change
+window.addEventListener('click', (event) => {
+    // Calculate mouse position
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Update raycaster
+    raycaster.setFromCamera(mouse, camera);
+
+    // Get all tile meshes
+    const tileMeshes = [];
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            tileMeshes.push(GRID[r][c].mesh);
+        }
+    }
+
+    // Check for intersections
+    const intersects = raycaster.intersectObjects(tileMeshes, false);
+
+    if (intersects.length > 0) {
+        const intersectedMesh = intersects[0].object;
+        
+        // Find the tile from the mesh
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const tile = GRID[r][c];
+                if (tile.mesh === intersectedMesh) {
+                    tile.isClicked = true;
+                    tile.setColor(CLICK_COLOR);
+                    clickedTiles.add(tile);
+                    break;
+                }
+            }
+        }
+    }
+});
+
+// Keyboard event for reset (press 'R' key)
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'r' || event.key === 'R') {
+        // Reset all clicked tiles
+        clickedTiles.forEach(tile => {
+            tile.isClicked = false;
+            tile.setColor(tile.originalColor);
+        });
+        clickedTiles.clear();
+        
+        // Also reset hovered tile if it exists
+        if (hoveredTile && !hoveredTile.isClicked) {
+            hoveredTile.setColor(hoveredTile.originalColor);
+        }
+    }
+});
 
 // Animation loop
 function animate() {

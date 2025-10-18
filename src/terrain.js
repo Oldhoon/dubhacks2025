@@ -97,7 +97,21 @@ export default class Terrain {
      */
     setColor(color) {
         this.color = color;
-        this.mesh.material.color.setHex(color);
+        
+        // Handle both single material and array of materials
+        if (Array.isArray(this.mesh.material)) {
+            // For textured tiles with multiple materials, update all materials
+            this.mesh.material.forEach(material => {
+                if (material.color) {
+                    material.color.setHex(color);
+                }
+            });
+        } else {
+            // For single material tiles
+            if (this.mesh.material.color) {
+                this.mesh.material.color.setHex(color);
+            }
+        }
     }
 
     get object3d() {
