@@ -67,10 +67,12 @@ vite 0.11.0 - 6.1.6 - Depends on vulnerable versions of esbuild
 async function loadGLTFAsync(files, postLoading) {
     // No try-catch or error handling
     const loader = new GLTFLoader(manager);
-    let models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
+    const models = await Promise.all(files.map(file => loader.loadAsync(file, onProgress)));
     postLoading(models);
 }
 ```
+
+**Note**: Minor linting issue fixed (let → const) but error handling still needs improvement.
 
 **Recommendation**:
 ```javascript

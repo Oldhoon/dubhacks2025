@@ -37,8 +37,13 @@ export default [
     ignores: [
       'node_modules/**',
       'dist/**',
-      '*.config.js',
-      'tests/**'
+      '*.config.js'
     ]
+  },
+  {
+    files: ['tests/**/*.js'],
+    rules: {
+      'no-unused-expressions': 'off' // Allow Vitest's expect assertions
+    }
   }
 ];
