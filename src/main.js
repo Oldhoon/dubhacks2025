@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import Terrain from './terrain.js';
 import { loadGLTFAsync, loadOBJAsync } from './setup.js';
 
 // Configuration constants
@@ -81,6 +82,10 @@ const character = new THREE.Mesh(characterGeometry, characterMaterial);
 character.position.y = 1;
 character.castShadow = true;
 scene.add(character);
+
+// Add terrain block using Terrain class
+const terrainBlock = new Terrain();
+terrainBlock.addToScene(scene);
 
 // Handle window resize
 window.addEventListener('resize', () => {
