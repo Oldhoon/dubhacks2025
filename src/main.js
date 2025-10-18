@@ -6,29 +6,39 @@ import Crosshair from './crosshair.js';
 import { loadFBXAsync } from './setup.js';
 
 // Configuration constants
-const TERRAIN_SIZE = 20;
-const TERRAIN_SEGMENTS = 10;
+const INITIAL_PLANE_SIZE = 1;
+const TERRAIN_SEGMENTS = 6;
 const CHARACTER_RADIUS = 0.3;
 const CHARACTER_HEIGHT = 1;
 const CHARACTER_RADIAL_SEGMENTS = 4;
 const CHARACTER_HEIGHT_SEGMENTS = 8;
 const ROTATION_SPEED = 0.01;
+const GRID_ROWS = 6;
+const GRID_COLS = 6;
+const TILE_TARGET_WORLD_SIZE = 3;
+const TILE_SPACING = 3.2;
 
 // Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue background
 
-// Perspective camera setup (adds depth to ground)
+// Orthographic-style view with a slanted perspective to keep the entire grid visible.
 const aspect = window.innerWidth / window.innerHeight;
-const camera = new THREE.PerspectiveCamera(
-    45,    // Field of view (smaller = zoomed in, larger = more wide angle)
-    aspect,
+const VIEW_HEIGHT = 45;
+const VIEW_WIDTH = VIEW_HEIGHT * aspect;
+const camera = new THREE.OrthographicCamera(
+    -VIEW_WIDTH / 2,
+    VIEW_WIDTH / 2,
+    VIEW_HEIGHT / 2,
+    -VIEW_HEIGHT / 2,
     0.1,
-    1000
+    200
 );
 
-// Camera 45° down, but not rotated sideways
-camera.position.set(0, 15, 20);  // angle downward
+// Position the camera on an isometric angle looking at the center of the grid.
+const CAMERA_DISTANCE = 36;
+const CAMERA_HEIGHT = 40;
+camera.position.set(CAMERA_DISTANCE, CAMERA_HEIGHT, CAMERA_DISTANCE);
 camera.lookAt(0, 0, 0);
 scene.add(camera);
 
@@ -69,9 +79,9 @@ directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
 
 // Flat plane terrain (low-poly style)
-const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
+const planeGeometry = new THREE.PlaneGeometry(INITIAL_PLANE_SIZE, INITIAL_PLANE_SIZE, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
 const planeMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x3a9d3a,
+    color: 0x8f7764,
     roughness: 0.85,
     metalness: 0.05
 });
@@ -103,14 +113,19 @@ scene.add(character);
 
 // Handle window resize
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const aspectRatio = window.innerWidth / window.innerHeight;
+    const viewHeight = VIEW_HEIGHT;
+    const viewWidth = viewHeight * aspectRatio;
+    camera.left = -viewWidth / 2;
+    camera.right = viewWidth / 2;
+    camera.top = viewHeight / 2;
+    camera.bottom = -viewHeight / 2;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
 
 const TILE_MODEL_PATH = new URL('../assets/fbx/PP_Meadow_07.fbx', import.meta.url);
-const TILE_DEFAULT_SCALE = 0.01;
 
 function ensureStandardMaterial(material) {
     if (Array.isArray(material)) {
@@ -160,12 +175,30 @@ crosshair.attachTo(camera);
 
 async function initializeTiles() {
     const [tileTemplate] = await loadFBXAsync([TILE_MODEL_PATH.href]);
-    tileTemplate.scale.setScalar(TILE_DEFAULT_SCALE);
     prepareFBXObject(tileTemplate);
-    const tileBounds = new THREE.Box3().setFromObject(tileTemplate);
-    const tileHeight = tileBounds.max.y - tileBounds.min.y;
-    const tileBaseOffset = -tileBounds.min.y;
-    const tileWorldSize = Math.max(tileBounds.max.x - tileBounds.min.x, tileBounds.max.z - tileBounds.min.z) || 3;
+
+    const originalBounds = new THREE.Box3().setFromObject(tileTemplate);
+    const originalSize = Math.max(
+        originalBounds.max.x - originalBounds.min.x,
+        originalBounds.max.z - originalBounds.min.z
+    ) || 1;
+
+    const scaleFactor = TILE_TARGET_WORLD_SIZE / originalSize;
+    tileTemplate.scale.setScalar(scaleFactor);
+    tileTemplate.updateMatrixWorld(true);
+
+    const scaledBounds = new THREE.Box3().setFromObject(tileTemplate);
+    const tileSizeX = scaledBounds.max.x - scaledBounds.min.x;
+    const tileSizeZ = scaledBounds.max.z - scaledBounds.min.z;
+    const tileHeight = scaledBounds.max.y - scaledBounds.min.y;
+    const tileBaseOffset = -scaledBounds.min.y;
+
+    const gridWidth = (GRID_COLS - 1) * TILE_SPACING + tileSizeX;
+    const gridDepth = (GRID_ROWS - 1) * TILE_SPACING + tileSizeZ;
+    if (plane.geometry) {
+        plane.geometry.dispose();
+    }
+    plane.geometry = new THREE.PlaneGeometry(gridWidth, gridDepth, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
 
     const createTileMeshInstance = () => {
         const clone = tileTemplate.clone(true);
@@ -189,47 +222,31 @@ async function initializeTiles() {
         meshFactory: createTileMeshInstance
     });
 
-    const starterTile = createTile();
-
-    // Grid definition using FBX tiles
-    const GRID_ROWS = 5;
-    const GRID_COLS = 5;
     const GRID = Array.from({ length: GRID_ROWS }, () =>
       Array.from({ length: GRID_COLS }, () => createTile())
     );
-    GRID[2][0] = starterTile; // maintain the catapult's ground tile
 
+    const centerRow = Math.floor(GRID_ROWS / 2);
+    const centerCol = Math.floor(GRID_COLS / 2);
+    const starterTile = GRID[centerRow][centerCol];
     catapult.attachTo(starterTile);
 
-    const ROWS = GRID.length;
-    const COLS = GRID[0].length;
-
     function gridToWorld(col, row) {
-      const offsetX = (COLS - 1) * 0.5;
-      const offsetZ = (ROWS - 1) * 0.5;
+      const offsetX = (GRID_COLS - 1) * 0.5;
+      const offsetZ = (GRID_ROWS - 1) * 0.5;
       return {
-        x: (col - offsetX) * tileWorldSize,
-        z: (row - offsetZ) * tileWorldSize,
+        x: (col - offsetX) * TILE_SPACING,
+        z: (row - offsetZ) * TILE_SPACING,
       };
     }
 
-    // Build / place tiles
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        let tile = GRID[r][c];
-        if (!(tile instanceof Terrain)) {
-          tile = createTile();
-          GRID[r][c] = tile;
-        }
-
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        const tile = GRID[r][c];
         const { x, z } = gridToWorld(c, r);
         const obj = tile.mesh;
-
-        // set world X/Z (Y already handled by Terrain)
         obj.position.x = x;
         obj.position.z = z;
-
-        // add once
         scene.add(obj);
       }
     }
