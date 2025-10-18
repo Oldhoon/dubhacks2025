@@ -36,7 +36,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const container = document.getElementById('game-container');
 if (!container) {
-    throw new Error('Game container element not found');
+    throw new Error('Game container element with ID "game-container" not found');
 }
 container.appendChild(renderer.domElement);
 
