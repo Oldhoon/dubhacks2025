@@ -84,8 +84,8 @@ character.castShadow = true;
 scene.add(character);
 
 // Add terrain block using Terrain class
-const terrainBlock = new Terrain();
-terrainBlock.addToScene(scene);
+// const terrainBlock = new Terrain();
+// terrainBlock.addToScene(scene);
 
 // Handle window resize
 window.addEventListener('resize', () => {
@@ -95,56 +95,69 @@ window.addEventListener('resize', () => {
   });
 
 
+const starterTile = new Terrain(3, 0x117A11);
+
+
 
 let catapult;
 
 loadGLTFAsync(["assets/catapult/scene.gltf"], function(models) {
     catapult = models[0].scene;
-
-    catapult.scale.set(0.3, 0.3, 0.3);
-    catapult.position.set(0.0, 0.0, 0.0);
-    // catapult.rotation.y = Math.PI;
-
-    scene.add(catapult);
-});
-
-
-// // Grid definition (0 = empty, 1 = grass, 2 = building, 3 = power, 4 = hole, 5 = start)
-// const GRID = [
-//     [0, 2, 2, 2, 2],
-//     [1, 0, 3, 0, 4],
-//     [5, 1, 0, 0, 1],
-//     [1, 1, 1, 3, 1],
-//     [0, 0, 1, 2, 0]
-//   ];
+    catapult.scale.set(0.2, 0.2, 0.2);
+  
+    // place catapult on top of the tile (local coords)
+    catapult.position.set(-0.5, starterTile.depth / 2 + 0.1, 0.5);
+  
+    // parent into the tile's local frame
+    starterTile.mesh.add(catapult);
+  });
 
 
-// // Grid constants
-// const TILE_SIZE = 1; // spacing between tiles
-// const HALF = (GRID.length - 1) * 0.5;
 
-// // Base materials (different colors = different tile types)
-// const materials = {
-//   0: new THREE.MeshStandardMaterial({ color: 0xaaaaaa }), // empty
-//   1: new THREE.MeshStandardMaterial({ color: 0x3fa34d }), // grass
-//   2: new THREE.MeshStandardMaterial({ color: 0xcccccc }), // building
-//   3: new THREE.MeshStandardMaterial({ color: 0xaa33ff, emissive: 0x551177 }), // power
-//   4: new THREE.MeshStandardMaterial({ color: 0x553322 }), // hole
-//   5: new THREE.MeshStandardMaterial({ color: 0xff5555 })  // start
-// };
+// Grid definition (0 = empty, 1 = grass, 2 = building, 3 = power, 4 = hole, 5 = start)
+const GRID = [
+    [null,          null,           null,           null,           null],
+    [null,          null,           null,           null,           null],
+    [starterTile,   null,           null,           null,           null],
+    [null,          null,           null,           null,           null],
+    [null,          null,           null,           null,           null]
+  ];
 
-// const tileGeo = new THREE.BoxGeometry(TILE_SIZE, 0.1, TILE_SIZE);
 
-// GRID.forEach((row, r) => {
-//   row.forEach((tileType, c) => {
-//     if (tileType === null) return;
+// --- grid constants
+const TILE_SIZE = 3;         // spacing in world units
+const ROWS = GRID.length;
+const COLS = GRID[0].length;
 
-//     const mesh = new THREE.Mesh(tileGeo, materials[tileType]);
-//     mesh.position.set(c - HALF, 0, r - HALF);
-//     scene.add(mesh);
-//   });
-// });
+function gridToWorld(col, row) {
+  const offsetX = (COLS - 1) * 0.5;
+  const offsetZ = (ROWS - 1) * 0.5;
+  return {
+    x: (col - offsetX) * TILE_SIZE,
+    z: (row - offsetZ) * TILE_SIZE,
+  };
+}
 
+// Build / place tiles
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    let tile = GRID[r][c];
+    if (!(tile instanceof Terrain)) {
+      tile = new Terrain();
+      GRID[r][c] = tile;
+    }
+
+    const { x, z } = gridToWorld(c, r);
+    const obj = tile.mesh;
+
+    // set world X/Z (Y already handled by Terrain)
+    obj.position.x = x;
+    obj.position.z = z;
+
+    // add once
+    scene.add(obj);
+  }
+}
 
 
 

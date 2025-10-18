@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const TERRAIN_SIZE = 5; 
+const TERRAIN_SIZE = 3; 
 const TERRAIN_COLOR = 0x228B22; // Forest green
 const TERRAIN_DEPTH = 1;
 /**
@@ -61,5 +61,9 @@ export default class Terrain {
     setColor(color) {
         this.color = color;
         this.mesh.material.color.setHex(color);
+    }
+
+    get object3d() {
+        return this.mesh;
     }
 }
