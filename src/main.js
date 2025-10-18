@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { loadGLTFAsync, loadOBJAsync } from './setup.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -13,20 +14,17 @@ const ROTATION_SPEED = 0.01;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue background
 
-// Isometric camera setup
+// Perspective camera setup (adds depth to ground)
 const aspect = window.innerWidth / window.innerHeight;
-const frustumSize = 10;
-const camera = new THREE.OrthographicCamera(
-    frustumSize * aspect / -2,
-    frustumSize * aspect / 2,
-    frustumSize / 2,
-    frustumSize / -2,
+const camera = new THREE.PerspectiveCamera(
+    45,    // Field of view (smaller = zoomed in, larger = more wide angle)
+    aspect,
     0.1,
     1000
 );
 
-// Position camera for isometric view (45 degrees horizontal, ~35 degrees vertical)
-camera.position.set(10, 10, 10);
+// Camera 45° down, but not rotated sideways
+camera.position.set(0, 15, 20);  // angle downward
 camera.lookAt(0, 0, 0);
 
 // Renderer setup
@@ -86,14 +84,70 @@ scene.add(character);
 
 // Handle window resize
 window.addEventListener('resize', () => {
-    const aspect = window.innerWidth / window.innerHeight;
-    camera.left = frustumSize * aspect / -2;
-    camera.right = frustumSize * aspect / 2;
-    camera.top = frustumSize / 2;
-    camera.bottom = frustumSize / -2;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+
+
+let catapult;
+
+loadGLTFAsync(["assets/catapult/scene.gltf"], function(models) {
+    catapult = models[0].scene;
+
+    catapult.scale.set(0.3, 0.3, 0.3);
+    catapult.position.set(0.0, 0.0, 0.0);
+    // catapult.rotation.y = Math.PI;
+
+    scene.add(catapult);
 });
+
+
+// // Grid definition (0 = empty, 1 = grass, 2 = building, 3 = power, 4 = hole, 5 = start)
+// const GRID = [
+//     [0, 2, 2, 2, 2],
+//     [1, 0, 3, 0, 4],
+//     [5, 1, 0, 0, 1],
+//     [1, 1, 1, 3, 1],
+//     [0, 0, 1, 2, 0]
+//   ];
+
+
+// // Grid constants
+// const TILE_SIZE = 1; // spacing between tiles
+// const HALF = (GRID.length - 1) * 0.5;
+
+// // Base materials (different colors = different tile types)
+// const materials = {
+//   0: new THREE.MeshStandardMaterial({ color: 0xaaaaaa }), // empty
+//   1: new THREE.MeshStandardMaterial({ color: 0x3fa34d }), // grass
+//   2: new THREE.MeshStandardMaterial({ color: 0xcccccc }), // building
+//   3: new THREE.MeshStandardMaterial({ color: 0xaa33ff, emissive: 0x551177 }), // power
+//   4: new THREE.MeshStandardMaterial({ color: 0x553322 }), // hole
+//   5: new THREE.MeshStandardMaterial({ color: 0xff5555 })  // start
+// };
+
+// const tileGeo = new THREE.BoxGeometry(TILE_SIZE, 0.1, TILE_SIZE);
+
+// GRID.forEach((row, r) => {
+//   row.forEach((tileType, c) => {
+//     if (tileType === null) return;
+
+//     const mesh = new THREE.Mesh(tileGeo, materials[tileType]);
+//     mesh.position.set(c - HALF, 0, r - HALF);
+//     scene.add(mesh);
+//   });
+// });
+
+
+
+
+
+
+
+
+
 
 // Animation loop
 function animate() {
