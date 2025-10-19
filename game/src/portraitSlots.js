@@ -10,10 +10,6 @@ const PORTRAIT_TEXTURE_PATHS = [
     'assets/splash/necromancer_pillars_light.png',
     'assets/splash/mage_magical.png',
     'assets/splash/lumberjack_tattered.png'
-    'assets/splash/catapult_border.png',
-    'assets/splash/necromancer_pillars_light.png',
-    'assets/splash/mage_magical.png',
-    'assets/splash/lumberjack_tattered.png'
 ];
 
 /**
@@ -41,23 +37,7 @@ class PortraitSlots {
         this.SLOT_SPACING = 0.2;
         this.NORMAL_OPACITY = 1.0;
         this.DRAG_OPACITY = 1.0;
-                
-        // World Y of the ground (change if your ground is higher/lower)
-        this.GROUND_Y = 0;
 
-        // Constant height above ground where the card should float
-        this.CARD_HEIGHT = 1.5;
-
-        // Infinite horizontal ground plane at y = GROUND_Y
-        this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.GROUND_Y);
-
-        // Scratch vector
-        this._tmpV3 = new THREE.Vector3();
-        this.SLOT_SIZE = 5;
-        this.SLOT_SPACING = 0.2;
-        this.NORMAL_OPACITY = 1.0;
-        this.DRAG_OPACITY = 1.0;
-                
         // World Y of the ground (change if your ground is higher/lower)
         this.GROUND_Y = 0;
 
@@ -111,7 +91,6 @@ class PortraitSlots {
 
             // Create portrait placeholder (colorful geometry)
             const portraitGeometry = new THREE.PlaneGeometry(this.SLOT_SIZE * 0.9, this.SLOT_SIZE * 0.9);
-            const portraitGeometry = new THREE.PlaneGeometry(this.SLOT_SIZE * 0.9, this.SLOT_SIZE * 0.9);
             const portraitMaterial = new THREE.MeshBasicMaterial({
                 map: this.getPortraitTexture(i),
                 color: 0xffffff,
@@ -123,7 +102,6 @@ class PortraitSlots {
 
             // Position portrait slightly above slot
             portrait.position.set(xPos, 0, 0.06);
-            portrait.position.applyEuler(this.selectionPlane.rotation.x);
             portrait.position.applyEuler(this.selectionPlane.rotation.x);
 
             portrait.userData = {
@@ -190,66 +168,42 @@ class PortraitSlots {
         this.raycaster.setFromCamera(this.mouse, this.camera);
       
         const intersects = this.raycaster.intersectObjects(this.portraits, true);
-      
-        const intersects = this.raycaster.intersectObjects(this.portraits, true);
+
         if (intersects.length > 0) {
-          this.dragging = intersects[0].object;
-      
-          // Visual feedback
-          if (this.dragging.material) {
-            this.dragging.material.transparent = true;
-          this.dragging = intersects[0].object;
-      
-          // Visual feedback
-          if (this.dragging.material) {
-            this.dragging.material.transparent = true;
-            this.dragging.material.opacity = this.DRAG_OPACITY;
-          }
-          }
+            this.dragging = intersects[0].object;
+
+            // Visual feedback
+            if (this.dragging.material) {
+                this.dragging.material.transparent = true;
+                this.dragging.material.opacity = this.DRAG_OPACITY;
+            }
         }
-      }
-      }
+    }
 
     /**
      * Handle mouse move - update dragged position
      */
     onMouseMove(event) {
         if (!this.dragging) return;
-      
-      
+
         this.updateMouse(event);
         this.raycaster.setFromCamera(this.mouse, this.camera);
-      
+
         // Ray → ground plane
         if (this.raycaster.ray.intersectPlane(this.groundPlane, this._tmpV3)) {
-          // Lift to the fixed card level above ground
-          this._tmpV3.y = this.GROUND_Y + this.CARD_HEIGHT;
-      
-          // Convert to the card's parent/local space before assigning
-          // (If selectionPlane is the parent, use it; otherwise use dragging.parent)
-          const parent = this.dragging.parent || this.selectionPlane;
-          const localPos = this._tmpV3.clone();
-          parent.worldToLocal(localPos);
-      
-          this.dragging.position.copy(localPos);
-          this.dragging.rotation.x = - Math.PI / 6;
-      
-        // Ray → ground plane
-        if (this.raycaster.ray.intersectPlane(this.groundPlane, this._tmpV3)) {
-          // Lift to the fixed card level above ground
-          this._tmpV3.y = this.GROUND_Y + this.CARD_HEIGHT;
-      
-          // Convert to the card's parent/local space before assigning
-          // (If selectionPlane is the parent, use it; otherwise use dragging.parent)
-          const parent = this.dragging.parent || this.selectionPlane;
-          const localPos = this._tmpV3.clone();
-          parent.worldToLocal(localPos);
-      
-          this.dragging.position.copy(localPos);
-          this.dragging.rotation.x = - Math.PI / 6;
+            // Lift to the fixed card level above ground
+            this._tmpV3.y = this.GROUND_Y + this.CARD_HEIGHT;
+
+            // Convert to the card's parent/local space before assigning
+            // (If selectionPlane is the parent, use it; otherwise use dragging.parent)
+            const parent = this.dragging.parent || this.selectionPlane;
+            const localPos = this._tmpV3.clone();
+            parent.worldToLocal(localPos);
+
+            this.dragging.position.copy(localPos);
+            this.dragging.rotation.x = - Math.PI / 6;
         }
-      }
-      }
+    }
 
     /**
      * Handle mouse up - stop dragging and check for terrain drop
@@ -268,8 +222,6 @@ class PortraitSlots {
             if (terrainIntersects.length > 0) {
                 // Portrait dropped on terrain
                 const terrainHit = terrainIntersects[0];
-                const terrainTile = terrainHit.object;
-                const terrainData = terrainTile.userData?.terrain ?? null;
                 const terrainTile = terrainHit.object;
                 const terrainData = terrainTile.userData?.terrain ?? null;
                 const terrainMesh = terrainData?.mesh ?? terrainTile;
