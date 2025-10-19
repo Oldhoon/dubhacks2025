@@ -107,6 +107,8 @@ selectionPlane.rotation.x = -Math.PI / 2 + 0.5;
 
 scene.add(selectionPlane);
 
+const clock = new THREE.Clock();
+
 // Add terrain block using Terrain class
 // const terrainBlock = new Terrain();
 // terrainBlock.addToScene(scene);
@@ -223,11 +225,16 @@ const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMe
 function animate() {
     requestAnimationFrame(animate);
 
+    const delta = clock.getDelta();
+
     // Update selection manager
     selectionManager.update();
 
     // Update targeting system (pulsing effect)
     targetingSystem.update();
+
+    // Update animated units
+    portraitSlots.update(delta);
 
     renderer.render(scene, camera);
 }

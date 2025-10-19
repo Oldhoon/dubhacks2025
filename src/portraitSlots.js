@@ -309,6 +309,21 @@ class PortraitSlots {
     }
 
     /**
+     * Update animations for spawned 3D units
+     */
+    update(delta) {
+        if (typeof delta !== 'number') return;
+
+        Object.values(this.spawnedUnitsByType).forEach(units => {
+            units.forEach(unit => {
+                if (typeof unit.update === 'function') {
+                    unit.update(delta);
+                }
+            });
+        });
+    }
+
+    /**
      * Create the appropriate unit for the given portrait index
      */
     createUnitForPortrait(portraitIndex) {
