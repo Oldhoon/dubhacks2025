@@ -304,11 +304,25 @@ class PortraitSlots {
 
                         unit.attachTo(terrainTile);
 
-                    if (!this.spawnedUnitsByType[type]) {
-                        this.spawnedUnitsByType[type] = [];
+                        let registered = true;
+                        if (terrainInstance && typeof terrainInstance.registerUnit === 'function') {
+                            registered = terrainInstance.registerUnit(type, unit);
+                        }
+
+                        if (!registered) {
+                            placementAllowed = false;
+                            if (typeof unit.detach === 'function') {
+                                unit.detach();
+                            }
+                        }
                     }
-                    const typeArray = this.spawnedUnitsByType[type];
-                    typeArray.push(unit);
+
+                    if (placementAllowed) {
+                        if (!this.spawnedUnitsByType[type]) {
+                            this.spawnedUnitsByType[type] = [];
+                        }
+                        const typeArray = this.spawnedUnitsByType[type];
+                        typeArray.push(unit);
 
                         if (this.selectionManager) {
                             this.selectionManager.addSelectableObject(unit.object3d, {
@@ -319,8 +333,9 @@ class PortraitSlots {
                             });
                         }
 
-                    const label = type.charAt(0).toUpperCase() + type.slice(1);
-                    console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                        const label = type.charAt(0).toUpperCase() + type.slice(1);
+                        console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                    }
                 } else {
                     // Create sprite at the center of the tile for other portraits
                     const spritePosition = new THREE.Vector3(
