@@ -1,10 +1,46 @@
 {
+  "id": 1001,
+  "name": "Level 1 — Variables & Values",
   "referenceCode": [
     "int x = 1;",
     "x = x + 1;",
     "int y = x;",
     "x = 0;"
   ],
+  "sprites": [
+    {
+      "type": "int",
+      "sprite": "Necromancer",
+      "position": [2, 0],
+      "value": 1
+    },
+    {
+      "type": "int",
+      "sprite": "Necromancer",
+      "position": [3, 0],
+      "value": 0
+    }
+  ],
+  "steps": [
+    {
+      "line": "int x = 1;",
+      "description": "Summon a Necromancer and assign value 1."
+    },
+    {
+      "line": "x = x + 1;",
+      "description": "Increase x's value by 1 (the Necromancer grows stronger)."
+    },
+    {
+      "line": "int y = x;",
+      "description": "Spawn a second Necromancer with the same power as x."
+    },
+    {
+      "line": "x = 0;",
+      "description": "Reduce x's power to zero — the Necromancer fades."
+    }
+  ],
+  "completionCondition": "All steps completed in order.",
+  "gridSize": [4, 4],
   "characters": [
     {
       "name": "x",

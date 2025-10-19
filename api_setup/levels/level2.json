@@ -1,10 +1,46 @@
 {
+  "id": 1002,
+  "name": "Level 2 — Pointers & Indirect Control",
   "referenceCode": [
     "char x = 1;",
-    "char * p_x = &x;",
+    "char *p_x = &x;",
     "*p_x = 4;",
     "x = 2;"
   ],
+  "sprites": [
+    {
+      "type": "char",
+      "sprite": "Lumberjack",
+      "position": [2, 0],
+      "value": 1
+    },
+    {
+      "type": "char*",
+      "sprite": "Catapult",
+      "position": [0, 0],
+      "value": "x"
+    }
+  ],
+  "steps": [
+    {
+      "line": "char x = 1;",
+      "description": "Spawn a Lumberjack holding a single log (x = 1)."
+    },
+    {
+      "line": "char *p_x = &x;",
+      "description": "Place a Catapult targeting that Lumberjack (p_x → x)."
+    },
+    {
+      "line": "*p_x = 4;",
+      "description": "The Catapult fires — the Lumberjack now holds 4 logs (x = 4)."
+    },
+    {
+      "line": "x = 2;",
+      "description": "Directly adjust the Lumberjack's logs to 2."
+    }
+  ],
+  "completionCondition": "All steps completed in order.",
+  "gridSize": [4, 4],
   "characters": [
     {
       "name": "x",
