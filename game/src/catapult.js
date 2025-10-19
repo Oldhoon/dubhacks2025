@@ -2,9 +2,13 @@ import * as THREE from 'three';
 import { loadGLTFAsync } from './setup.js';
 import Stone from './stone.js';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Connection from './connection.js';
 =======
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+import Connection from './connection.js';
+>>>>>>> cfb30bb (cylinder)
 
 const DEFAULT_MODEL_PATH = 'assets/catapult/scene.gltf';
 const DEFAULT_SCALE = { x: 0.2, y: 0.2, z: 0.2 };
@@ -35,12 +39,18 @@ export default class Catapult {
         this.scene = null;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cfb30bb (cylinder)
         // Pointer connection (only one connection per catapult)
         this.connection = null;
         this.connectedTile = null;
 
+<<<<<<< HEAD
 =======
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+>>>>>>> cfb30bb (cylinder)
         loadGLTFAsync([this.modelPath], (models) => {
             const gltf = models[0];
             const gltfScene = gltf.scene;
@@ -107,10 +117,14 @@ export default class Catapult {
      */
     fire(targetPosition, options = {}) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
   
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+
+>>>>>>> cfb30bb (cylinder)
         // Get catapult world position (launch point)
         const launchPosition = new THREE.Vector3();
         this.root.updateMatrixWorld(true);
@@ -122,29 +136,44 @@ export default class Catapult {
         // Create and fire stone
         const stone = new Stone(this.scene, launchPosition, targetPosition, options);
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         // Don't show trajectory on the stone itself (targeting system handles preview)
         stone.fire({ showTrajectory: false });
 =======
         stone.fire();
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+
+        // Don't show trajectory on the stone itself (targeting system handles preview)
+        stone.fire({ showTrajectory: false });
+>>>>>>> cfb30bb (cylinder)
 
         // Track active stones
         this.activeStones.push(stone);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cfb30bb (cylinder)
         // Create/update pointer connection to target tile
         if (options.targetTile) {
             this.createConnectionTo(options.targetTile);
         }
 
+<<<<<<< HEAD
 =======
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+>>>>>>> cfb30bb (cylinder)
         return stone;
     }
 
     /**
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cfb30bb (cylinder)
      * Create a pointer connection to a tile (removes previous connection)
      * @param {THREE.Mesh} tileMesh - The tile mesh to connect to
      */
@@ -180,9 +209,12 @@ export default class Catapult {
 
     /**
      * Update all active projectiles and connection
+<<<<<<< HEAD
 =======
      * Update all active projectiles
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+>>>>>>> cfb30bb (cylinder)
      * @param {number} deltaTime - Time since last frame in seconds
      */
     update(deltaTime) {
@@ -198,14 +230,20 @@ export default class Catapult {
             }
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cfb30bb (cylinder)
 
         // Animate the pointer connection
         if (this.connection) {
             this.connection.update(); // Update position if objects moved
             this.connection.animate(deltaTime); // Animate glow effect
         }
+<<<<<<< HEAD
 =======
 >>>>>>> 2a5fb16 (fix projectile)
+=======
+>>>>>>> cfb30bb (cylinder)
     }
 
     /**

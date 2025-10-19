@@ -200,15 +200,21 @@ export default class Stone {
         this.hasLanded = false;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cfb30bb (cylinder)
         // Only show trajectory if explicitly requested (default: false when firing)
         if (options.showTrajectory !== false) {
             this.showTrajectory();
             setTimeout(() => this.hideTrajectory(), 500);
         }
+<<<<<<< HEAD
 =======
         this.showTrajectory();
         setTimeout(() => this.hideTrajectory(), 500);
 >>>>>>> 954e161 (Added images and better card selection mechanics)
+=======
+>>>>>>> cfb30bb (cylinder)
     }
 
     /**
