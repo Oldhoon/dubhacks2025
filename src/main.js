@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
+import PortraitSlots from './portraitSlots.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -64,6 +65,19 @@ plane.position.y = -0.05; // Slightly below tiles to avoid z-fighting
 plane.receiveShadow = true;
 scene.add(plane);
 
+// flat plane for displaying unit selection
+const selectionPlaneGeometry = new THREE.PlaneGeometry(17, 3);
+const selectionPlaneMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+}); 
+const selectionPlane = new THREE.Mesh(selectionPlaneGeometry, selectionPlaneMaterial);
+selectionPlane.position.set(0, 0.1, 11); 
+selectionPlane.rotation.x = -Math.PI / 2 + 0.5;
+
+scene.add(selectionPlane);
 
 // Add terrain block using Terrain class
 // const terrainBlock = new Terrain();
@@ -113,7 +127,8 @@ function gridToWorld(col, row) {
   };
 }
 
-// Build / place tiles
+// Build / place tiles and collect terrain meshes
+const terrainMeshes = [];
 for (let r = 0; r < ROWS; r++) {
   for (let c = 0; c < COLS; c++) {
     let tile = GRID[r][c];
@@ -132,8 +147,12 @@ for (let r = 0; r < ROWS; r++) {
 
     // add once
     scene.add(obj);
+    terrainMeshes.push(obj);
   }
 }
+
+// Initialize portrait slots on the selection plane (after terrain is created)
+const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMeshes);
 
 
 
