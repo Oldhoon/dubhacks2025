@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import Projectile from './projectile.js';
 
 /**
  * TargetingSystem - Manages tile targeting for catapult aiming
@@ -9,7 +10,6 @@ class TargetingSystem {
         this.scene = scene;
         this.gridData = gridData; // { GRID, ROWS, COLS, gridToWorld function }
         this.selectionManager = selectionManager;
-        this.selectionManager = selectionManager;
 
         this.isTargetingMode = false;
         this.targetRow = 2; // Start in center
@@ -18,6 +18,10 @@ class TargetingSystem {
         this.targetIndicator = null;
         this.TARGET_COLOR = 0xff0000; // Red indicator
         this.TARGET_OPACITY = 0.5;
+
+        // Projectile management
+        this.activeProjectiles = [];
+        this.currentTrajectoryPreview = null;
 
         this.createTargetIndicator();
         this.setupKeyboardControls();
@@ -59,7 +63,7 @@ class TargetingSystem {
                 return;
             }
 
-            // Only handle WASD when in targeting mode
+            // Only handle WASD and Enter when in targeting mode
             if (!this.isTargetingMode) return;
 
             let moved = false;
@@ -85,6 +89,10 @@ class TargetingSystem {
                     this.targetCol++;
                     moved = true;
                 }
+            } else if (event.key === 'Enter') {
+                // Fire projectile on Enter
+                this.fireProjectile();
+                return;
             }
 
             if (moved) {
@@ -109,9 +117,14 @@ class TargetingSystem {
 
         if (this.isTargetingMode) {
             this.updateTargetPosition();
-            console.log('Targeting mode ON - Use WASD to move target, Spacebar to exit');
+            console.log('Targeting mode ON - Use WASD to move target, Enter to fire, Spacebar to exit');
         } else {
             console.log('Targeting mode OFF');
+            // Hide trajectory preview when exiting targeting mode
+            if (this.currentTrajectoryPreview) {
+                this.currentTrajectoryPreview.dispose();
+                this.currentTrajectoryPreview = null;
+            }
         }
     }
 
@@ -127,6 +140,9 @@ class TargetingSystem {
 
         // Rotate selected catapult to face the target
         this.aimCatapultAtTarget();
+        
+        // Update trajectory preview
+        this.updateTrajectoryPreview();
     }
 
     /**
@@ -140,13 +156,10 @@ class TargetingSystem {
             return;
         }
 
-
-        // test
         const catapultObject = selected.object;
 
         // Get target world position
         const targetWorldPos = this.gridData.GRID[this.targetRow][this.targetCol].mesh;
-        console.log('Target World Position:', targetWorldPos);
         let targetPosition = new THREE.Vector3();
         let catapultPos = new THREE.Vector3();
         catapultObject.updateMatrixWorld(true);
@@ -157,18 +170,93 @@ class TargetingSystem {
         const tarXZ = new THREE.Vector2(targetPosition.x, targetPosition.z);
         const rotVec = tarXZ.clone().sub(catXZ);
         let angle = Math.atan2(rotVec.x, rotVec.y);
-        console.log('Target Position Vector3:', targetPosition);
+        
         // Make catapult look at target
         catapultObject.rotation.y = angle - Math.PI / 2;
-        console.log(targetPosition);
-        console.log(targetPosition);
-        console.log(catapultPos);
-        console.log(rotVec);
-
-        // add rotation offset to correct aim 
-        // catapultObject.rotation.y -= Math.PI /2;
 
         console.log(`Catapult aiming at target tile`);
+    }
+
+    /**
+     * Update the trajectory preview line
+     */
+    updateTrajectoryPreview() {
+        // Remove old preview
+        if (this.currentTrajectoryPreview) {
+            this.currentTrajectoryPreview.dispose();
+            this.currentTrajectoryPreview = null;
+        }
+
+        const selected = this.selectionManager.getSelectedObject();
+        if (!selected || selected.userData.type !== 'catapult') {
+            return;
+        }
+
+        // Get catapult and target positions
+        const catapultObject = selected.object;
+        const startPos = new THREE.Vector3();
+        catapultObject.updateMatrixWorld(true);
+        catapultObject.getWorldPosition(startPos);
+        
+        // Adjust launch position to be higher (from catapult arm)
+        startPos.y += 1.0;
+
+        const targetTile = this.gridData.GRID[this.targetRow][this.targetCol].mesh;
+        const targetPos = new THREE.Vector3();
+        targetTile.updateMatrixWorld(true);
+        targetTile.getWorldPosition(targetPos);
+        
+        // Target the top of the tile
+        targetPos.y += 0.5;
+
+        // Create trajectory preview (without launching)
+        this.currentTrajectoryPreview = new Projectile(this.scene, startPos, targetPos, {
+            launchAngle: 45,
+            gravity: 9.8
+        });
+        
+        // Show the trajectory line
+        this.currentTrajectoryPreview.showTrajectoryLine();
+    }
+
+    /**
+     * Fire a projectile from the catapult to the target
+     */
+    fireProjectile() {
+        const selected = this.selectionManager.getSelectedObject();
+        if (!selected || selected.userData.type !== 'catapult') {
+            console.log('No catapult selected');
+            return;
+        }
+
+        // Get catapult position
+        const catapultObject = selected.object;
+        const startPos = new THREE.Vector3();
+        catapultObject.updateMatrixWorld(true);
+        catapultObject.getWorldPosition(startPos);
+        
+        // Adjust launch position to be higher (from catapult arm)
+        startPos.y += 1.0;
+
+        // Get target position
+        const targetTile = this.gridData.GRID[this.targetRow][this.targetCol].mesh;
+        const targetPos = new THREE.Vector3();
+        targetTile.updateMatrixWorld(true);
+        targetTile.getWorldPosition(targetPos);
+        
+        // Target the top of the tile
+        targetPos.y += 0.5;
+
+        // Create and launch projectile
+        const projectile = new Projectile(this.scene, startPos, targetPos, {
+            launchAngle: 45,
+            gravity: 9.8
+        });
+        
+        projectile.launch();
+        this.activeProjectiles.push(projectile);
+
+        console.log(`Fired projectile from catapult at (${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) to target at (${targetPos.x.toFixed(2)}, ${targetPos.y.toFixed(2)}, ${targetPos.z.toFixed(2)})`);
     }
 
     /**
@@ -192,11 +280,24 @@ class TargetingSystem {
     /**
      * Update animation (for pulsing effect if desired)
      */
-    update() {
+    update(deltaTime) {
         // Optional: Add pulsing animation to indicator
         if (this.targetIndicator.visible) {
             const time = Date.now() * 0.001;
             this.targetIndicator.material.opacity = this.TARGET_OPACITY + Math.sin(time * 3) * 0.2;
+        }
+
+        // Update all active projectiles
+        for (let i = this.activeProjectiles.length - 1; i >= 0; i--) {
+            const projectile = this.activeProjectiles[i];
+            projectile.update(deltaTime);
+            
+            // Remove inactive projectiles
+            if (!projectile.isActive()) {
+                // Keep the projectile mesh visible after landing for now
+                // Could add cleanup timer here if desired
+                this.activeProjectiles.splice(i, 1);
+            }
         }
     }
 
@@ -209,6 +310,17 @@ class TargetingSystem {
             this.targetIndicator.material.dispose();
             this.scene.remove(this.targetIndicator);
         }
+
+        if (this.currentTrajectoryPreview) {
+            this.currentTrajectoryPreview.dispose();
+            this.currentTrajectoryPreview = null;
+        }
+
+        // Clean up all active projectiles
+        for (const projectile of this.activeProjectiles) {
+            projectile.dispose();
+        }
+        this.activeProjectiles = [];
     }
 }
 

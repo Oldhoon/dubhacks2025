@@ -336,8 +336,8 @@ function animate() {
     // Update selection manager
     selectionManager.update();
 
-    // Update targeting system (pulsing effect)
-    targetingSystem.update();
+    // Update targeting system (pulsing effect and projectiles)
+    targetingSystem.update(delta);
 
     // Update animated units
     portraitSlots.update(delta);
