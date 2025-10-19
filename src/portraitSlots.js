@@ -1,0 +1,260 @@
+import * as THREE from 'three';
+import Sprite from './sprite.js';
+
+/**
+ * PortraitSlots - Manages draggable portrait slots on the selection plane
+ */
+class PortraitSlots {
+    constructor(selectionPlane, camera, scene, terrainMeshes = []) {
+        this.selectionPlane = selectionPlane;
+        this.camera = camera;
+        this.scene = scene;
+        this.terrainMeshes = terrainMeshes;
+        this.slots = [];
+        this.portraits = [];
+        this.dragging = null;
+        this.dragPlane = new THREE.Plane();
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.offset = new THREE.Vector3();
+
+        this.SLOT_SIZE = 3;
+        this.SLOT_SPACING = 0.5;
+        this.NORMAL_OPACITY = 0.9;
+        this.DRAG_OPACITY = 0.4;
+
+        this.spawnedSprites = []; // Track sprites spawned on terrain
+
+        this.createSlots();
+        this.setupEventListeners();
+    }
+
+    /**
+     * Create 4 portrait slots positioned on the selection plane
+     */
+    createSlots() {
+        const totalWidth = (this.SLOT_SIZE * 4) + (this.SLOT_SPACING * 3);
+        const startX = -totalWidth / 2 + this.SLOT_SIZE / 2;
+
+        for (let i = 0; i < 4; i++) {
+            // Create slot background (darker square)
+            const slotGeometry = new THREE.PlaneGeometry(this.SLOT_SIZE, this.SLOT_SIZE);
+            const slotMaterial = new THREE.MeshBasicMaterial({
+                color: 0x555555,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.6
+            });
+            const slot = new THREE.Mesh(slotGeometry, slotMaterial);
+
+            // Position slot on the selection plane
+            const xPos = startX + i * (this.SLOT_SIZE + this.SLOT_SPACING);
+            slot.position.set(xPos, 0, 0);
+            slot.position.applyEuler(this.selectionPlane.rotation);
+
+            // Add to selection plane as parent
+            this.selectionPlane.add(slot);
+            this.slots.push(slot);
+
+            // Create portrait placeholder (colorful geometry)
+            const portraitGeometry = new THREE.BoxGeometry(this.SLOT_SIZE * 0.8, this.SLOT_SIZE * 0.8, 0.1);
+            const portraitMaterial = new THREE.MeshLambertMaterial({
+                color: this.getPortraitColor(i),
+                transparent: true,
+                opacity: this.NORMAL_OPACITY
+            });
+            const portrait = new THREE.Mesh(portraitGeometry, portraitMaterial);
+
+            // Position portrait slightly above slot
+            portrait.position.set(xPos, 0, 0.06);
+            portrait.position.applyEuler(this.selectionPlane.rotation);
+
+            portrait.userData = {
+                slotIndex: i,
+                homePosition: portrait.position.clone(),
+                homeRotation: portrait.rotation.clone()
+            };
+
+            this.selectionPlane.add(portrait);
+            this.portraits.push(portrait);
+        }
+    }
+
+    /**
+     * Set the terrain meshes that portraits can be dropped on
+     */
+    setTerrainMeshes(terrainMeshes) {
+        this.terrainMeshes = terrainMeshes;
+    }
+
+    /**
+     * Get distinct color for each portrait placeholder
+     */
+    getPortraitColor(index) {
+        const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3];
+        return colors[index % colors.length];
+    }
+
+    /**
+     * Setup mouse event listeners for dragging
+     */
+    setupEventListeners() {
+        const canvas = document.querySelector('canvas');
+
+        canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+        canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+        canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+        canvas.addEventListener('mouseleave', this.onMouseUp.bind(this));
+    }
+
+    /**
+     * Update mouse coordinates
+     */
+    updateMouse(event) {
+        const canvas = document.querySelector('canvas');
+        const rect = canvas.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    /**
+     * Handle mouse down - start dragging
+     */
+    onMouseDown(event) {
+        this.updateMouse(event);
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+
+        const intersects = this.raycaster.intersectObjects(this.portraits);
+
+        if (intersects.length > 0) {
+            this.dragging = intersects[0].object;
+
+            // Get world position of the portrait
+            const worldPosition = new THREE.Vector3();
+            this.dragging.getWorldPosition(worldPosition);
+
+            // Set up drag plane that matches the selection plane's orientation
+            const planeNormal = new THREE.Vector3(0, 1, 0);
+            planeNormal.applyQuaternion(this.selectionPlane.quaternion);
+            this.dragPlane.setFromNormalAndCoplanarPoint(planeNormal, worldPosition);
+
+            // Calculate offset in world space
+            const intersectPoint = new THREE.Vector3();
+            this.raycaster.ray.intersectPlane(this.dragPlane, intersectPoint);
+            this.offset.copy(intersectPoint).sub(worldPosition);
+
+            // Reduce opacity while dragging
+            this.dragging.material.opacity = this.DRAG_OPACITY;
+        }
+    }
+
+    /**
+     * Handle mouse move - update dragged position
+     */
+    onMouseMove(event) {
+        if (!this.dragging) return;
+
+        this.updateMouse(event);
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+
+        const intersectPoint = new THREE.Vector3();
+        if (this.raycaster.ray.intersectPlane(this.dragPlane, intersectPoint)) {
+            // Calculate new world position
+            const newWorldPosition = intersectPoint.sub(this.offset);
+
+            // Convert world position to local position relative to selectionPlane
+            this.selectionPlane.worldToLocal(newWorldPosition);
+
+            // Update portrait's local position
+            this.dragging.position.copy(newWorldPosition);
+        }
+    }
+
+    /**
+     * Handle mouse up - stop dragging and check for terrain drop
+     */
+    onMouseUp(event) {
+        if (this.dragging) {
+            // Restore normal opacity
+            this.dragging.material.opacity = this.NORMAL_OPACITY;
+
+            // Check if dropped on a terrain tile
+            this.updateMouse(event);
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+
+            const terrainIntersects = this.raycaster.intersectObjects(this.terrainMeshes, true);
+
+            if (terrainIntersects.length > 0) {
+                // Portrait dropped on terrain - spawn a sprite
+                const terrainHit = terrainIntersects[0];
+                const terrainTile = terrainHit.object;
+
+                // Get the center position of the terrain tile
+                const tileWorldPosition = new THREE.Vector3();
+                terrainTile.getWorldPosition(tileWorldPosition);
+
+                // Create sprite at the center of the tile
+                const spritePosition = new THREE.Vector3(
+                    tileWorldPosition.x,
+                    tileWorldPosition.y + 0.5, // Raised above terrain
+                    tileWorldPosition.z
+                );
+
+                const sprite = new Sprite(this.dragging.userData.slotIndex, spritePosition);
+                sprite.addToScene(this.scene);
+
+                // Track the spawned sprite
+                this.spawnedSprites.push(sprite);
+
+                console.log(`Sprite spawned from portrait ${this.dragging.userData.slotIndex} at tile center`, tileWorldPosition);
+
+                // Portrait returns to home position
+                this.dragging.position.copy(this.dragging.userData.homePosition);
+                this.dragging.rotation.copy(this.dragging.userData.homeRotation);
+            } else {
+                // Not on terrain, snap back to home position
+                this.dragging.position.copy(this.dragging.userData.homePosition);
+                this.dragging.rotation.copy(this.dragging.userData.homeRotation);
+            }
+
+            this.dragging = null;
+        }
+    }
+
+    /**
+     * Get all spawned sprites
+     */
+    getSprites() {
+        return this.spawnedSprites;
+    }
+
+    /**
+     * Cleanup event listeners and resources
+     */
+    dispose() {
+        const canvas = document.querySelector('canvas');
+        canvas.removeEventListener('mousedown', this.onMouseDown);
+        canvas.removeEventListener('mousemove', this.onMouseMove);
+        canvas.removeEventListener('mouseup', this.onMouseUp);
+        canvas.removeEventListener('mouseleave', this.onMouseUp);
+
+        // Dispose geometries and materials
+        this.slots.forEach(slot => {
+            slot.geometry.dispose();
+            slot.material.dispose();
+        });
+
+        this.portraits.forEach(portrait => {
+            portrait.geometry.dispose();
+            portrait.material.dispose();
+        });
+
+        // Dispose spawned sprites
+        this.spawnedSprites.forEach(sprite => {
+            sprite.removeFromScene(this.scene);
+            sprite.dispose();
+        });
+    }
+}
+
+export default PortraitSlots;

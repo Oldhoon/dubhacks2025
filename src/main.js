@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import Crosshair from './crosshair.js';
 
 // Configuration constants
@@ -23,7 +22,7 @@ const camera = new THREE.PerspectiveCamera(
 
 // Camera 45° down, but not rotated sideways
 camera.position.set(0, 20, 15);  // angle downward
-camera.lookAt(0, 0, 0);
+camera.lookAt(0, 0, 4);
 scene.add(camera);
 
 // Renderer setup
@@ -90,6 +89,19 @@ plane.position.y = -0.05; // Slightly below tiles to avoid z-fighting
 plane.receiveShadow = true;
 scene.add(plane);
 
+// flat plane for displaying unit selection
+const selectionPlaneGeometry = new THREE.PlaneGeometry(17, 3);
+const selectionPlaneMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+}); 
+const selectionPlane = new THREE.Mesh(selectionPlaneGeometry, selectionPlaneMaterial);
+selectionPlane.position.set(0, 0.1, 11); 
+selectionPlane.rotation.x = -Math.PI / 2 + 0.5;
+
+scene.add(selectionPlane);
 
 // Add terrain block using Terrain class
 // const terrainBlock = new Terrain();
@@ -128,8 +140,7 @@ const starterTile = createGrassTile();
 starterTile.mesh.rotation.y = 0;
 const catapult = new Catapult();
 catapult.attachTo(starterTile);
-const crosshair = new Crosshair();
-crosshair.attachTo(camera);
+
 
 
 // Grid definition with textured tiles
@@ -158,7 +169,8 @@ function gridToWorld(col, row) {
   };
 }
 
-// Build / place tiles
+// Build / place tiles and collect terrain meshes
+const terrainMeshes = [];
 for (let r = 0; r < ROWS; r++) {
   for (let c = 0; c < COLS; c++) {
     let tile = GRID[r][c];
@@ -177,9 +189,9 @@ for (let r = 0; r < ROWS; r++) {
 
     // add once
     scene.add(obj);
+    terrainMeshes.push(obj);
   }
 }
-
 
 
 
