@@ -191,17 +191,19 @@ class PortraitSlots {
                 // Portrait dropped on terrain
                 const terrainHit = terrainIntersects[0];
                 const terrainTile = terrainHit.object;
+                const terrainData = terrainTile.userData?.terrain ?? null;
+                const terrainMesh = terrainData?.mesh ?? terrainTile;
                 const portraitIndex = this.dragging.userData.slotIndex;
 
                 // Get the center position of the terrain tile
                 const tileWorldPosition = new THREE.Vector3();
-                terrainTile.getWorldPosition(tileWorldPosition);
+                terrainMesh.getWorldPosition(tileWorldPosition);
 
                 // Check if this is the first portrait (catapult)
                 if (portraitIndex === 0) {
                     // Spawn a catapult
                     const catapult = new Catapult();
-                    catapult.attachTo(terrainTile);
+                    catapult.attachTo(terrainData ?? terrainMesh);
 
                     // Track the spawned catapult
                     this.spawnedCatapults.push(catapult);
@@ -211,7 +213,7 @@ class PortraitSlots {
                         this.selectionManager.addSelectableObject(catapult.object3d, {
                             type: 'catapult',
                             index: this.spawnedCatapults.length - 1,
-                            tile: terrainTile // Pass the tile reference for highlighting
+                            tile: terrainMesh // Pass the tile reference for highlighting
                         });
                     }
 
@@ -236,7 +238,7 @@ class PortraitSlots {
                             type: 'sprite',
                             portraitIndex: portraitIndex,
                             index: this.spawnedSprites.length - 1,
-                            tile: terrainTile // Pass the tile reference for highlighting
+                            tile: terrainMesh // Pass the tile reference for highlighting
                         });
                     }
 

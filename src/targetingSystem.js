@@ -5,9 +5,10 @@ import * as THREE from 'three';
  * Shows visual indicator on target tile and allows WASD navigation
  */
 class TargetingSystem {
-    constructor(scene, gridData) {
+    constructor(scene, gridData, selectionManager) {
         this.scene = scene;
         this.gridData = gridData; // { GRID, ROWS, COLS, gridToWorld function }
+        this.selectionManager = selectionManager;
 
         this.isTargetingMode = false;
         this.targetRow = 2; // Start in center
@@ -115,6 +116,35 @@ class TargetingSystem {
         this.targetIndicator.position.z = worldPos.z;
 
         console.log(`Target: Row ${this.targetRow}, Col ${this.targetCol}`);
+
+        // Rotate selected catapult to face the target
+        this.aimCatapultAtTarget();
+    }
+
+    /**
+     * Rotate the selected catapult to look at the target tile
+     */
+    aimCatapultAtTarget() {
+        const selected = this.selectionManager.getSelectedObject();
+
+        // Only aim if a catapult is selected
+        if (!selected || selected.userData.type !== 'catapult') {
+            return;
+        }
+
+        const catapultObject = selected.object;
+
+        // Get target world position
+        const targetWorldPos = this.gridData.gridToWorld(this.targetCol, this.targetRow);
+        const targetPosition = new THREE.Vector3(targetWorldPos.x, targetWorldPos.y, targetWorldPos.z);
+
+        // Make catapult look at target
+        catapultObject.lookAt(targetPosition);
+
+        // add rotation offset to correct aim 
+        catapultObject.rotation.y -= Math.PI /2; 
+
+        console.log(`Catapult aiming at target tile`);
     }
 
     /**

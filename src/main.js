@@ -209,7 +209,7 @@ const targetingSystem = new TargetingSystem(scene, {
     ROWS: ROWS,
     COLS: COLS,
     gridToWorld: gridToWorld
-});
+}, selectionManager);
 
 // Initialize portrait slots on the selection plane (after terrain is created)
 const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMeshes, selectionManager);

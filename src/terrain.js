@@ -287,6 +287,9 @@ export default class Terrain {
         const mesh = new THREE.Mesh(geometry, materials);
         mesh.receiveShadow = true;
         mesh.castShadow = true;
+        mesh.userData = mesh.userData || {};
+        mesh.userData.terrain = this;
+        mesh.userData.isTerrain = true;
 
         // Position the block so its bottom sits at y = 0
         mesh.position.y = this.depth / 2;
