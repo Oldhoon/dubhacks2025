@@ -94,8 +94,19 @@ class TargetingSystem {
         }
 
         if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            const highlightedTerrain = this.selectionManager.getCurrentHighlightedTerrain?.();
+            const hasHero = highlightedTerrain && (
+                highlightedTerrain.hasUnitType?.('mage') ||
+                highlightedTerrain.hasUnitType?.('lumberjack') ||
+                highlightedTerrain.hasUnitType?.('necromancer')
+            );
+
+            if (!hasHero) {
+                return;
+            }
+
             const delta = event.key === 'ArrowUp' ? 1 : -1;
-            const handled = this.adjustHighlightedTerrain(delta);
+            const handled = this.adjustHighlightedTerrain(delta, highlightedTerrain);
             if (handled) {
                 event.preventDefault();
             }
@@ -103,19 +114,7 @@ class TargetingSystem {
         }
 
         if (event.key === '1' || event.key === '2' || event.key === '3') {
-            const highlightedTerrain = this.selectionManager.getCurrentHighlightedTerrain?.();
-            const canUseHighlight = highlightedTerrain && (
-                highlightedTerrain.hasUnitType?.('mage') ||
-                highlightedTerrain.hasUnitType?.('lumberjack') ||
-                highlightedTerrain.hasUnitType?.('necromancer')
-            );
-
-            if (!this.isTargetingMode && !canUseHighlight) {
-                return;
-            }
-
-            event.preventDefault();
-            this.handleSpawnKey(event.key, highlightedTerrain);
+            // Legacy hotkeys disabled; rely on arrow keys instead.
             return;
         }
 
@@ -241,41 +240,8 @@ class TargetingSystem {
         console.log(`Catapult aiming at target tile`);
     }
 
-    handleSpawnKey(key, highlightedTerrain) {
-        const hasSprite = (terrain) => terrain?.hasUnitType?.('mage') || terrain?.hasUnitType?.('lumberjack') || terrain?.hasUnitType?.('necromancer');
-
-        let terrain = highlightedTerrain;
-
-        if (!hasSprite(terrain)) {
-            const targetInfo = this.getTargetTile();
-            const cursorTerrain = targetInfo?.tile;
-            if (hasSprite(cursorTerrain)) {
-                terrain = cursorTerrain;
-            }
-        }
-
-        if (!terrain) {
-            console.warn('No terrain tile available for placement.');
-            return;
-        }
-
-        let actionResult = null;
-        if (key === '1' && typeof terrain.addPotion === 'function') {
-            actionResult = terrain.addPotion();
-        } else if (key === '2' && typeof terrain.addTree === 'function') {
-            actionResult = terrain.addTree();
-        } else if (key === '3' && typeof terrain.addGhoul === 'function') {
-            actionResult = terrain.addGhoul();
-        } else {
-            console.warn(`No placement handler for key "${key}".`);
-            return;
-        }
-
-        if (actionResult && typeof actionResult.then === 'function') {
-            actionResult.catch((error) => {
-                console.error('Failed to place asset on terrain:', error);
-            });
-        }
+    handleSpawnKey() {
+        console.warn('Consumable placement now uses arrow keys on highlighted tiles.');
     }
 
     /**
@@ -433,39 +399,17 @@ class TargetingSystem {
         }
     }
 
-    adjustHighlightedTerrain(delta) {
+    adjustHighlightedTerrain(delta, highlightedTerrain) {
         if (delta === 0) return false;
 
         const heroToAsset = {
-            mage: {
-                add: 'addPotion',
-                remove: 'removePotion'
-            },
-            lumberjack: {
-                add: 'addTree',
-                remove: 'removeTree'
-            },
-            necromancer: {
-                add: 'addGhoul',
-                remove: 'removeGhoul'
-            }
+            mage: { add: 'addPotion', remove: 'removePotion' },
+            lumberjack: { add: 'addTree', remove: 'removeTree' },
+            necromancer: { add: 'addGhoul', remove: 'removeGhoul' }
         };
 
-        const hasSprite = (terrain) => terrain?.hasUnitType?.('mage') || terrain?.hasUnitType?.('lumberjack') || terrain?.hasUnitType?.('necromancer');
-
-        let terrain = this.selectionManager.getCurrentHighlightedTerrain?.();
-
-        if (!hasSprite(terrain)) {
-            if (!this.isTargetingMode) {
-                return false;
-            }
-            const cursorTerrain = this.getTargetTile()?.tile;
-            if (hasSprite(cursorTerrain)) {
-                terrain = cursorTerrain;
-            }
-        }
-
-        if (!hasSprite(terrain)) {
+        const terrain = highlightedTerrain;
+        if (!terrain) {
             return false;
         }
 
