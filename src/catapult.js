@@ -115,11 +115,14 @@ export default class Catapult {
 
     /**
      * Remove entity from its parent (scene or terrain)
-     * For API consistency with Terrain class, accepts scene parameter but uses tracked parent
      * Alias: detach()
      */
     removeFromScene(scene) {
         if (this.parent) {
+            // For safety, verify the scene matches if provided
+            if (scene && this.parent !== scene) {
+                console.warn('Catapult: scene parameter does not match tracked parent');
+            }
             this.parent.remove(this.root);
             this.parent = null;
         }
@@ -137,28 +140,28 @@ export default class Catapult {
      * Note: Simple geometry is shared, so we only dispose of materials for those
      */
     dispose() {
-        if (this.model) {
-            if (this.model.isMesh) {
-                // Simple geometry unit - only dispose material (geometry is shared)
-                this.model.material.dispose();
-            } else if (this.model.isObject3D) {
-                // GLTF model - traverse and dispose all meshes and materials
-                this.model.traverse((child) => {
-                    if (child.isMesh) {
-                        if (child.geometry) {
-                            child.geometry.dispose();
-                        }
-                        if (child.material) {
-                            // Handle both single material and material arrays
-                            if (Array.isArray(child.material)) {
-                                child.material.forEach(material => material.dispose());
-                            } else {
-                                child.material.dispose();
-                            }
+        if (!this.model) return;
+
+        if (this.useGeometry && this.model.isMesh) {
+            // Simple geometry unit - only dispose material (geometry is shared)
+            this.model.material.dispose();
+        } else {
+            // GLTF model - traverse and dispose all meshes and materials
+            this.model.traverse((child) => {
+                if (child.isMesh) {
+                    if (child.geometry) {
+                        child.geometry.dispose();
+                    }
+                    if (child.material) {
+                        // Handle both single material and material arrays
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(material => material.dispose());
+                        } else {
+                            child.material.dispose();
                         }
                     }
-                });
-            }
+                }
+            });
         }
     }
 
