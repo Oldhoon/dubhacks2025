@@ -235,6 +235,7 @@ class PortraitSlots {
 
                 if (unitData) {
                     const { unit, type } = unitData;
+<<<<<<< HEAD
 
                     // Set scene reference for catapults (needed for firing stones)
                     if (type === 'catapult' && typeof unit.setScene === 'function') {
@@ -258,6 +259,24 @@ class PortraitSlots {
                         });
                     }
 
+=======
+                    unit.attachTo(terrainTile);
+
+                    if (!this.spawnedUnitsByType[type]) {
+                        this.spawnedUnitsByType[type] = [];
+                    }
+                    const typeArray = this.spawnedUnitsByType[type];
+                    typeArray.push(unit);
+
+                    if (this.selectionManager) {
+                        this.selectionManager.addSelectableObject(unit.object3d, {
+                            type: type,
+                            index: typeArray.length - 1,
+                            tile: terrainTile // Pass the tile reference for highlighting
+                        });
+                    }
+
+>>>>>>> 954e161 (Added images and better card selection mechanics)
                     const label = type.charAt(0).toUpperCase() + type.slice(1);
                     console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                 } else {
