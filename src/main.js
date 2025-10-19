@@ -5,10 +5,11 @@ import PortraitSlots from './portraitSlots.js';
 import SelectionManager from './selectionManager.js';
 import CameraController from './cameraController.js';
 import TargetingSystem from './targetingSystem.js';
+import { loadGLTFAsync } from './setup.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 // Configuration constants
-const TERRAIN_SIZE = 20;
+const TERRAIN_SIZE = 50;
 const TERRAIN_SEGMENTS = 10;
 
 // Scene setup
@@ -25,7 +26,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 // Camera 45° down, but not rotated sideways
-camera.position.set(0, 20, 15);  // angle downward
+camera.position.set(0, 30, 22);  // angle downward
 camera.lookAt(0, 0, 4);
 scene.add(camera);
 
@@ -84,7 +85,7 @@ baseGrassTex.colorSpace = THREE.SRGBColorSpace;
 baseGrassTex.magFilter = THREE.NearestFilter;
 baseGrassTex.minFilter = THREE.NearestFilter;
 // Repeat across the plane; tweak for desired density
-baseGrassTex.repeat.set(8, 8);
+baseGrassTex.repeat.set(6, 6);
 planeMaterial.map = baseGrassTex;
 planeMaterial.needsUpdate = true;
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -197,6 +198,110 @@ for (let r = 0; r < ROWS; r++) {
   }
 }
 
+const treeScale = 0.5;
+
+// Load and scatter small trees and stumps to form a forest band
+// Simple pine placement (reverted to stable version)
+loadGLTFAsync(["assets/trees/small_tree.glb"], (models) => {
+  const prefab = models[0].scene;
+  prefab.traverse((c) => {
+    if (c.isMesh) {
+      c.castShadow = true;
+      c.receiveShadow = true;
+    }
+  });
+
+  function randomXZ() {
+    let x = Math.random() * 2 - 1;
+    let z = Math.random() * 2 - 1;
+    return {x, z};
+  }
+
+  function randomHeight() {
+    const h = treeScale * (Math.random() + 5.0) / 6.0;
+    return h;
+  }
+
+  const COUNT = 4;
+  for (let i = -COUNT; i < COUNT; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(i * 3 + x, 0, -12 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT; i < COUNT; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(i * 3 + x, 0, -15 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT - 2; i < COUNT + 2; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(-12 + x, 0, -i * 3 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT - 2; i < COUNT + 2; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(-15 + x, 0, -i * 3 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT - 2; i < COUNT + 2; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(-18 + x, 0, -i * 3 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT - 2; i < COUNT + 2; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(12 + x, 0, -i * 3 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT - 2; i < COUNT + 2; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(15 + x, 0, -i * 3 + z);
+    scene.add(inst);
+  }
+  for (let i = -COUNT - 2; i < COUNT + 2; i++) {
+    const inst = prefab.clone(true);
+    const s = THREE.MathUtils.lerp(0.7, 1.2, Math.random());
+    const h = randomHeight();
+    inst.scale.set(h, h, h);
+    const {x, z} = randomXZ();
+    inst.position.set(18 + x, 0, -i * 3 + z);
+    scene.add(inst);
+  }
+});
+
+
+
+
+
+
 // Initialize selection manager for object selection and highlighting
 const selectionManager = new SelectionManager(scene);
 
@@ -209,7 +314,7 @@ const targetingSystem = new TargetingSystem(scene, {
     ROWS: ROWS,
     COLS: COLS,
     gridToWorld: gridToWorld
-});
+}, selectionManager);
 
 // Initialize portrait slots on the selection plane (after terrain is created)
 const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMeshes, selectionManager);
@@ -231,5 +336,6 @@ function animate() {
 
     renderer.render(scene, camera);
 }
+
 
 animate();
