@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import Crosshair from './crosshair.js';
 
 // Configuration constants
@@ -30,6 +31,11 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Enable physically based rendering pipeline
+renderer.physicallyCorrectLights = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 const container = document.getElementById('game-container');
 if (!container) {
     throw new Error('Game container element with ID "game-container" not found');
@@ -38,11 +44,11 @@ container.appendChild(renderer.domElement);
 
 // Lighting setup
 // Ambient light for overall scene illumination
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambientLight);
 
 // Directional light (sun) with shadows
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
 directionalLight.position.set(10, 20, 10);
 directionalLight.castShadow = true;
 directionalLight.shadow.camera.left = -20;
@@ -53,12 +59,31 @@ directionalLight.shadow.mapSize.width = 2048;
 directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
 
+// Image-based lighting environment for PBR
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const envMap = pmremGenerator.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environment = envMap;
+
 // Flat plane terrain (low-poly style)
-const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
-const planeMaterial = new THREE.MeshLambertMaterial({ 
+const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE - 1, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
+const planeMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x3a9d3a,
+    roughness: 1.0,
+    metalness: 0.0,
     flatShading: true // Low-poly effect
 });
+// Apply base grass texture with repeating so blades are small
+const BASE_GRASS_PATH = 'assets/tiles/Texture/Base Grass IMG.png';
+const baseGrassTex = new THREE.TextureLoader().load(BASE_GRASS_PATH);
+baseGrassTex.wrapS = THREE.RepeatWrapping;
+baseGrassTex.wrapT = THREE.RepeatWrapping;
+baseGrassTex.colorSpace = THREE.SRGBColorSpace;
+baseGrassTex.magFilter = THREE.NearestFilter;
+baseGrassTex.minFilter = THREE.NearestFilter;
+// Repeat across the plane; tweak for desired density
+baseGrassTex.repeat.set(8, 8);
+planeMaterial.map = baseGrassTex;
+planeMaterial.needsUpdate = true;
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.rotation.x = -Math.PI / 2;
 plane.position.y = -0.05; // Slightly below tiles to avoid z-fighting
@@ -81,8 +106,26 @@ window.addEventListener('resize', () => {
 // Grass tiles across the entire grid
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
 const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: true };
-const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH, undefined, GRASS_ATLAS);
+const createGrassTile = () => new Terrain(
+  3,
+  0x3a9d3a,
+  GRASS_TEXTURE_PATH,
+  undefined,
+  GRASS_ATLAS,
+  {
+    jagged: { enabled: true, amount: 0.45 },
+    topJagged: { enabled: true, amount: 0.12, innerRadius: 0.8 },
+    widthSegments: 14,
+    heightSegments: 12,
+    depthSegments: 14,
+    randomOrientation: true,
+    orientationSteps: 4,
+    sideTexturePath: 'assets/tiles/Texture/Side Cliff IMG.png'
+  }
+);
 const starterTile = createGrassTile();
+// Ensure the starter tile has no yaw so the catapult doesn't inherit rotation
+starterTile.mesh.rotation.y = 0;
 const catapult = new Catapult();
 catapult.attachTo(starterTile);
 const crosshair = new Crosshair();
@@ -136,6 +179,7 @@ for (let r = 0; r < ROWS; r++) {
     scene.add(obj);
   }
 }
+
 
 
 
