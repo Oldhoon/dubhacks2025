@@ -12,99 +12,114 @@ export default function MemoryGamePage() {
     "",
     "int main() {",
     "    // Your program builds as you play →",
+    "    return 0;",
+    "}",
   ]);
   const declarationMapRef = useRef(new Map<string, { index: number; baseType: string; varName: string }>());
 
-  const pointerLine = (event: Extract<CodeEvent, { type: "pointer" }>) => {
-    if (!event.hasTarget) {
-      return `    void* ${event.pointerName};`;
-    }
-    return `    ${event.baseType}* ${event.pointerName} = &${event.targetVarName};`;
-  };
+const pointerLine = (event: Extract<CodeEvent, { type: "pointer" }>) => {
+  if (!event.hasTarget) {
+    return `    void* ${event.pointerName};`;
+  }
+  return `    ${event.baseType}* ${event.pointerName} = &${event.targetVarName};`;
+};
 
-  const handleCodeEvent = (event: CodeEvent) => {
-    if (typeof event === "string") {
-      setProgramLines(prev => [...prev, event]);
-      return;
-    }
+const handleCodeEvent = (event: CodeEvent) => {
+  if (typeof event === "string") {
+    setProgramLines(prev => {
+      const body = prev.slice(0, -2);
+      const closing = prev.slice(-2);
+      return [...body, event, ...closing];
+    });
+    return;
+  }
 
-    if (Array.isArray(event)) {
-      setProgramLines(prev => [...prev, ...event]);
-      return;
-    }
+  if (Array.isArray(event)) {
+    setProgramLines(prev => {
+      const body = prev.slice(0, -2);
+      const closing = prev.slice(-2);
+      return [...body, ...event, ...closing];
+    });
+    return;
+  }
 
     if (!event) {
       return;
     }
 
-    if (event.type === "declare") {
-      setProgramLines(prev => {
-        const nextLines = [...prev];
-        const binding = declarationMapRef.current.get(event.id);
-        const line = `    ${event.baseType} ${event.varName};`;
-        if (binding) {
-          nextLines[binding.index] = line;
-          binding.baseType = event.baseType;
-          binding.varName = event.varName;
-        } else {
-          nextLines.push(line);
-          declarationMapRef.current.set(event.id, {
-            index: nextLines.length - 1,
-            baseType: event.baseType,
-            varName: event.varName,
-          });
-        }
-        return nextLines;
-      });
-      return;
-    }
-
-    if (event.type === "update") {
-      setProgramLines(prev => {
-        const binding = declarationMapRef.current.get(event.id);
-        if (!binding) {
-          return prev;
-        }
-        const nextLines = [...prev];
-        const line = `    ${event.baseType} ${event.varName} = ${event.count};`;
-        nextLines[binding.index] = line;
+  if (event.type === "declare") {
+    setProgramLines(prev => {
+      const body = prev.slice(0, -2);
+      const closing = prev.slice(-2);
+      const binding = declarationMapRef.current.get(event.id);
+      const line = `    ${event.baseType} ${event.varName};`;
+      if (binding) {
+        body[binding.index] = line;
         binding.baseType = event.baseType;
         binding.varName = event.varName;
-        return nextLines;
-      });
-      return;
-    }
+      } else {
+        body.push(line);
+        declarationMapRef.current.set(event.id, {
+          index: body.length - 1,
+          baseType: event.baseType,
+          varName: event.varName,
+        });
+      }
+      return [...body, ...closing];
+    });
+    return;
+  }
 
-    if (event.type === "pointer") {
-      setProgramLines(prev => {
-        const declaration = declarationMapRef.current.get(event.id);
-        if (!declaration) {
-          const nextLines = [...prev, pointerLine(event)];
-          declarationMapRef.current.set(event.id, {
-            index: nextLines.length - 1,
-            baseType: event.baseType,
-            varName: event.pointerName,
-          });
-          return nextLines;
-        }
+  if (event.type === "update") {
+    setProgramLines(prev => {
+      const body = prev.slice(0, -2);
+      const closing = prev.slice(-2);
+      const binding = declarationMapRef.current.get(event.id);
+      if (!binding) {
+        return prev;
+      }
+      const line = `    ${event.baseType} ${event.varName} = ${event.count};`;
+      body[binding.index] = line;
+      binding.baseType = event.baseType;
+      binding.varName = event.varName;
+      return [...body, ...closing];
+    });
+    return;
+  }
 
-        const nextLines = [...prev];
-        nextLines[declaration.index] = pointerLine(event);
-        declaration.baseType = event.baseType;
-        declaration.varName = event.pointerName;
-        return nextLines;
-      });
-    }
-  };
+  if (event.type === "pointer") {
+    setProgramLines(prev => {
+      const body = prev.slice(0, -2);
+      const closing = prev.slice(-2);
+      const declaration = declarationMapRef.current.get(event.id);
+      if (!declaration) {
+        body.push(pointerLine(event));
+        declarationMapRef.current.set(event.id, {
+          index: body.length - 1,
+          baseType: event.baseType,
+          varName: event.pointerName,
+        });
+        return [...body, ...closing];
+      }
 
-  const closeProgram = () => setProgramLines(prev => [...prev, "    return 0;", "}"]);
-  const clearProgram = () => setProgramLines([
-    "#include <stdio.h>",
-    "#include <stdlib.h>",
-    "",
-    "int main() {",
-    "    // Your program builds as you play →",
-  ]);
+      body[declaration.index] = pointerLine(event);
+      declaration.baseType = event.baseType;
+      declaration.varName = event.pointerName;
+      return [...body, ...closing];
+    });
+  }
+};
+
+const closeProgram = () => {};
+const clearProgram = () => setProgramLines([
+  "#include <stdio.h>",
+  "#include <stdlib.h>",
+  "",
+  "int main() {",
+  "    // Your program builds as you play →",
+  "    return 0;",
+  "}",
+]);
 
   const handleClearProgram = () => {
     declarationMapRef.current.clear();
