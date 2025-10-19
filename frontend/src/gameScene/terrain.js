@@ -565,6 +565,7 @@ export default class Terrain {
             instance.userData.terrain = this;
             instance.userData.gridIndex = slotIndex;
             instance.userData.type = type;
+            instance.userData.assetType = type;
 
             const slotPosition = this.gridPositions[slotIndex];
             instance.position.set(
@@ -591,6 +592,53 @@ export default class Terrain {
             this.gridSlots[slotIndex] = null;
             return null;
         }
+    }
+
+    removeAssetFromGrid(type) {
+        for (let i = this.gridSlots.length - 1; i >= 0; i--) {
+            const slot = this.gridSlots[i];
+            if (!slot || slot === LOADING_SLOT) {
+                continue;
+            }
+            if (slot.userData?.assetType !== type) {
+                continue;
+            }
+
+            this.mesh.remove(slot);
+
+            slot.traverse((child) => {
+                if (child.isMesh) {
+                    child.geometry?.dispose?.();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach((mat) => mat.dispose?.());
+                        } else {
+                            child.material.dispose?.();
+                        }
+                    }
+                }
+            });
+
+            this.gridSlots[i] = null;
+
+            this.codeHooks?.onAssetRemoved?.(this, type);
+            return true;
+        }
+
+        console.warn(`No asset of type ${type} found on this terrain to remove.`);
+        return false;
+    }
+
+    removePotion() {
+        return this.removeAssetFromGrid('potion');
+    }
+
+    removeTree() {
+        return this.removeAssetFromGrid('tree');
+    }
+
+    removeGhoul() {
+        return this.removeAssetFromGrid('ghoul');
     }
 
     update(delta) {
@@ -627,6 +675,13 @@ export default class Terrain {
     get pointerName() {
         const binding = this.pointerBinding;
         return binding ? binding.pointerName : null;
+    }
+
+    getHeroUnitType() {
+        if (this.hasUnitType('necromancer')) return 'necromancer';
+        if (this.hasUnitType('mage')) return 'mage';
+        if (this.hasUnitType('lumberjack')) return 'lumberjack';
+        return null;
     }
 
 }

@@ -93,10 +93,28 @@ class TargetingSystem {
             return;
         }
 
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            const highlightedTerrain = this.selectionManager.getCurrentHighlightedTerrain?.();
+            const hasHero = highlightedTerrain && (
+                highlightedTerrain.hasUnitType?.('mage') ||
+                highlightedTerrain.hasUnitType?.('lumberjack') ||
+                highlightedTerrain.hasUnitType?.('necromancer')
+            );
+
+            if (!hasHero) {
+                return;
+            }
+
+            const delta = event.key === 'ArrowUp' ? 1 : -1;
+            const handled = this.adjustHighlightedTerrain(delta, highlightedTerrain);
+            if (handled) {
+                event.preventDefault();
+            }
+            return;
+        }
+
         if (event.key === '1' || event.key === '2' || event.key === '3') {
-            if (!this.isTargetingMode) return;
-            event.preventDefault();
-            this.handleSpawnKey(event.key);
+            // Legacy hotkeys disabled; rely on arrow keys instead.
             return;
         }
 
@@ -222,31 +240,8 @@ class TargetingSystem {
         console.log(`Catapult aiming at target tile`);
     }
 
-    handleSpawnKey(key) {
-        const targetInfo = this.getTargetTile();
-        const terrain = targetInfo?.tile;
-        if (!terrain) {
-            console.warn('No terrain tile available for placement.');
-            return;
-        }
-
-        let actionResult = null;
-        if (key === '1' && typeof terrain.addPotion === 'function') {
-            actionResult = terrain.addPotion();
-        } else if (key === '2' && typeof terrain.addTree === 'function') {
-            actionResult = terrain.addTree();
-        } else if (key === '3' && typeof terrain.addGhoul === 'function') {
-            actionResult = terrain.addGhoul();
-        } else {
-            console.warn(`No placement handler for key "${key}".`);
-            return;
-        }
-
-        if (actionResult && typeof actionResult.then === 'function') {
-            actionResult.catch((error) => {
-                console.error('Failed to place asset on terrain:', error);
-            });
-        }
+    handleSpawnKey() {
+        console.warn('Consumable placement now uses arrow keys on highlighted tiles.');
     }
 
     /**
@@ -402,6 +397,47 @@ class TargetingSystem {
                 }
             });
         }
+    }
+
+    adjustHighlightedTerrain(delta, highlightedTerrain) {
+        if (delta === 0) return false;
+
+        const heroToAsset = {
+            mage: { add: 'addPotion', remove: 'removePotion' },
+            lumberjack: { add: 'addTree', remove: 'removeTree' },
+            necromancer: { add: 'addGhoul', remove: 'removeGhoul' }
+        };
+
+        const terrain = highlightedTerrain;
+        if (!terrain) {
+            return false;
+        }
+
+        const heroType = terrain.getHeroUnitType?.();
+        if (!heroType) {
+            return false;
+        }
+
+        const handlers = heroToAsset[heroType];
+        if (!handlers) {
+            return false;
+        }
+
+        if (delta > 0) {
+            const addMethod = terrain[handlers.add];
+            if (typeof addMethod === 'function') {
+                addMethod.call(terrain);
+                return true;
+            }
+            return false;
+        }
+
+        const removeMethod = terrain[handlers.remove];
+        if (typeof removeMethod === 'function') {
+            return removeMethod.call(terrain);
+        }
+
+        return false;
     }
 
     /**

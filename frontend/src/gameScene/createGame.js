@@ -210,6 +210,27 @@ export function createGameExperience(canvas, options = {}) {
         updatePointersForTerrain(terrain);
     };
 
+    const handleAssetRemoved = (terrain, _assetType) => {
+        const binding = codeBindings.get(terrain);
+        if (!binding) {
+            return;
+        }
+
+        if (binding.count > 0) {
+            binding.count -= 1;
+        }
+
+        emitCodeEvent({
+            type: 'update',
+            id: binding.varName,
+            baseType: binding.baseType,
+            varName: binding.varName,
+            count: binding.count
+        });
+
+        updatePointersForTerrain(terrain);
+    };
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
 
@@ -318,6 +339,7 @@ export function createGameExperience(canvas, options = {}) {
             tile.setCodeHooks({
                 onUnitPlaced: handleUnitPlaced,
                 onAssetPlaced: handleAssetPlaced,
+                onAssetRemoved: handleAssetRemoved,
                 getBinding: (t) => codeBindings.get(t) ?? null,
                 getPointer: (t) => getPointerForTerrain(t)
             });
@@ -392,7 +414,12 @@ export function createGameExperience(canvas, options = {}) {
     window.addEventListener('resize', resizeListener);
     cleanupFns.push(() => window.removeEventListener('resize', resizeListener));
 
-    const selectionManager = new SelectionManager(scene);
+    let highlightedTerrain = null;
+    const selectionManager = new SelectionManager(scene, {
+        onHighlightChange: (mesh) => {
+            highlightedTerrain = mesh?.userData?.terrain ?? null;
+        }
+    });
     const cameraController = new CameraController(camera, selectionManager);
     const targetingSystem = new TargetingSystem(
         scene,
