@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { loadGLTFAsync } from './setup.js';
 
 const DEFAULT_MODEL_PATH = 'assets/sprites/mage/scene.gltf';
-const DEFAULT_SCALE = { x: 0.05, y: 0.05, z: 0.05 };
+const DEFAULT_SCALE = { x: 0.1, y: 0.1, z: 0.1 };
 const DEFAULT_OFFSET = { x: 0, y: 0.5, z: 1 };
 
 export default class Mage {

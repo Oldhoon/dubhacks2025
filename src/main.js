@@ -97,7 +97,7 @@ plane.receiveShadow = true;
 scene.add(plane);
 
 // flat plane for displaying unit selection
-const selectionPlaneGeometry = new THREE.PlaneGeometry(17, 3);
+const selectionPlaneGeometry = new THREE.PlaneGeometry(20, 5);
 const selectionPlaneMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xffffff,
     side: THREE.DoubleSide,
@@ -105,7 +105,7 @@ const selectionPlaneMaterial = new THREE.MeshBasicMaterial({
     opacity: 0.8
 }); 
 const selectionPlane = new THREE.Mesh(selectionPlaneGeometry, selectionPlaneMaterial);
-selectionPlane.position.set(0, 0.1, 11); 
+selectionPlane.position.set(0, 1, 13.5); 
 selectionPlane.rotation.x = -Math.PI / 2 + 0.5;
 
 scene.add(selectionPlane);
