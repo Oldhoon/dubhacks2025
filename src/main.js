@@ -342,6 +342,15 @@ function animate() {
     // Update animated units
     portraitSlots.update(delta);
 
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const tile = GRID[r][c];
+            if (tile && typeof tile.update === 'function') {
+                tile.update(delta);
+            }
+        }
+    }
+
     renderer.render(scene, camera);
 }
 

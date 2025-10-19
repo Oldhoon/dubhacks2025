@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import Potion from './potion.js';
+import Tree from './tree.js';
+import Ghoul from './ghoul.js';
 
 const TERRAIN_SIZE = 4;
 const TERRAIN_COLOR = 0x228B22; // Forest green
@@ -7,6 +10,9 @@ const TERRAIN_BASE_SCALE = 1.2; // how much wider the base is vs top
 const DEFAULT_SEGMENTS = { width: 8, height: 4, depth: 8 };
 const DEFAULT_JAGGED = { enabled: false, amount: 0.25 };
 const DEFAULT_TOP_JAGGED = { enabled: false, amount: 0.15, innerRadius: 0.8 };
+const GRID_DIVISIONS = 4;
+const TERRAIN_GRID_OFFSET = 0.02;
+const LOADING_SLOT = Symbol('terrain-grid-loading');
 
 /**
  * Terrain class representing a simple square block with optional texture overlay
@@ -43,12 +49,24 @@ export default class Terrain {
             amount: options.topJagged?.amount ?? options.topJaggedAmount ?? DEFAULT_TOP_JAGGED.amount,
             innerRadius: options.topJagged?.innerRadius ?? DEFAULT_TOP_JAGGED.innerRadius,
         };
+        this.gridDivisions = GRID_DIVISIONS;
+        this.gridSlots = new Array(this.gridDivisions * this.gridDivisions).fill(null);
+        this.gridPositions = [];
+        this.surfaceHeight = this.depth / 2;
+        this.assetFactories = {
+            potion: new Potion(),
+            tree: new Tree(),
+            ghoul: new Ghoul()
+        };
+        this.activeAnimations = [];
+
         this.orientation = 0;
         this.randomOrientation = !!options.randomOrientation;
         this.orientationSteps = Math.max(1, Math.floor(options.orientationSteps ?? 4));
         this.jaggedSeed = (this.jagged.enabled ? (options.jaggedSeed ?? Math.random() * 10000) : 0);
 
         this.mesh = this.createTerrain();
+        this.precomputeGridPositions();
     }
 
     /**
@@ -329,7 +347,123 @@ export default class Terrain {
         this.mesh.material.color.setHex(color);
     }
 
+    addPotion() {
+        return this.addAssetToGrid('potion');
+    }
+
+    addTree() {
+        return this.addAssetToGrid('tree');
+    }
+
+    addGhoul() {
+        return this.addAssetToGrid('ghoul');
+    }
+
+    setAssetFactory(type, factory) {
+        if (!factory || typeof factory.createInstance !== 'function') {
+            throw new Error('Asset factory must provide a createInstance method.');
+        }
+        this.assetFactories[type] = factory;
+        return this;
+    }
+
+    getAssetFactory(type) {
+        return this.assetFactories[type] ?? null;
+    }
+
     get object3d() {
         return this.mesh;
     }
+
+    precomputeGridPositions() {
+        this.gridPositions = [];
+        const cellSize = this.size / this.gridDivisions;
+        const halfSize = this.size / 2;
+
+        for (let row = 0; row < this.gridDivisions; row++) {
+            for (let col = 0; col < this.gridDivisions; col++) {
+                const index = row * this.gridDivisions + col;
+                const x = -halfSize + col * cellSize + cellSize / 2;
+                const z = -halfSize + row * cellSize + cellSize / 2;
+                this.gridPositions[index] = new THREE.Vector3(x, 0, z);
+            }
+        }
+    }
+
+    findNextAvailableSlot() {
+        for (let i = 0; i < this.gridSlots.length; i++) {
+            if (this.gridSlots[i] === null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    async addAssetToGrid(type) {
+        const slotIndex = this.findNextAvailableSlot();
+        if (slotIndex === -1) {
+            console.warn(`Terrain grid is full, cannot add ${type}.`);
+            return null;
+        }
+
+        this.gridSlots[slotIndex] = LOADING_SLOT;
+
+        try {
+            const assetFactory = this.assetFactories[type];
+            if (!assetFactory) {
+                throw new Error(`No asset factory registered for type "${type}".`);
+            }
+
+            const cellSize = this.size / this.gridDivisions;
+            const instance = await assetFactory.createInstance(cellSize);
+            instance.name = `${type}-slot-${slotIndex}`;
+            instance.userData = instance.userData || {};
+            instance.userData.terrain = this;
+            instance.userData.gridIndex = slotIndex;
+            instance.userData.type = type;
+
+            const slotPosition = this.gridPositions[slotIndex];
+            instance.position.set(
+                slotPosition.x,
+                this.surfaceHeight + TERRAIN_GRID_OFFSET,
+                slotPosition.z
+            );
+
+            this.mesh.add(instance);
+            this.gridSlots[slotIndex] = instance;
+
+            if (instance.userData.animationMixer) {
+                this.activeAnimations.push({
+                    mixer: instance.userData.animationMixer,
+                    owner: instance
+                });
+            }
+
+            return instance;
+        } catch (error) {
+            console.error(`Failed to add ${type} to terrain grid:`, error);
+            this.gridSlots[slotIndex] = null;
+            return null;
+        }
+    }
+
+    update(delta) {
+        if (typeof delta !== 'number' || delta <= 0 || this.activeAnimations.length === 0) {
+            return;
+        }
+
+        for (let i = this.activeAnimations.length - 1; i >= 0; i--) {
+            const entry = this.activeAnimations[i];
+            const mixer = entry?.mixer;
+            const owner = entry?.owner;
+
+            if (!mixer || !owner || !owner.parent) {
+                this.activeAnimations.splice(i, 1);
+                continue;
+            }
+
+            mixer.update(delta);
+        }
+    }
+
 }
