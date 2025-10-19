@@ -6,7 +6,6 @@ import * as THREE from 'three';
  */
 class TargetingSystem {
     constructor(scene, gridData, selectionManager) {
-    constructor(scene, gridData, selectionManager) {
         this.scene = scene;
         this.gridData = gridData; // { GRID, ROWS, COLS, gridToWorld function }
         this.selectionManager = selectionManager;
