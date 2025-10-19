@@ -26,6 +26,8 @@ export default class Stone {
         this.radius = options.radius ?? 0.3;
         this.scale = options.scale ?? 0.5;
 
+        this.Yoffset = -2.5;
+
         // Runtime state
         this.position = this.startPosition.clone();
         this.isActive = false;
@@ -221,9 +223,11 @@ export default class Stone {
         this.mesh.position.copy(this.tempPosition);
         this.position.copy(this.tempPosition);
 
+        this.mesh.position.y += this.Yoffset;
+
         // Spin for visual interest
-        this.mesh.rotation.x += this.rotationSpeed * deltaTime;
-        this.mesh.rotation.z += this.rotationSpeed * deltaTime;
+        // this.mesh.rotation.x += this.rotationSpeed * deltaTime;
+        // this.mesh.rotation.z += this.rotationSpeed * deltaTime;
 
         if (t >= 1) {
             this.land();
@@ -238,6 +242,8 @@ export default class Stone {
         this.isActive = false;
         this.position.copy(this.effectiveTargetPosition);
         this.mesh.position.copy(this.effectiveTargetPosition);
+
+        this.mesh.position.y += this.Yoffset;
 
         console.log('Stone landed at:', this.position);
 
