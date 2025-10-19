@@ -1,0 +1,20 @@
+{
+    "name": "api_setup",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "main": "dist/index.js",
+    "scripts": {
+        "dev": "ts-node-esm parser/testRunner.ts",
+        "build": "tsc",
+        "start": "node dist/parser/testRunner.js"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.156",
+        "@types/node": "^24.8.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
+    }
+}
