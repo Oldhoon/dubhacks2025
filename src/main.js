@@ -106,6 +106,10 @@ const clickedTiles = new Set(); // Store tiles that have been clicked
 const HOVER_COLOR = 0xffff00; // Yellow for hover
 const CLICK_COLOR = 0xff0000;  // Red for clicked tiles
 
+// Map for efficient tile lookup from mesh
+const meshToTileMap = new Map();
+const tileMeshes = [];
+
 
 // Grass tiles across the entire grid
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
@@ -161,6 +165,10 @@ for (let r = 0; r < ROWS; r++) {
     tile.originalColor = tile.color;
     tile.isClicked = false;
 
+    // Add to tile mesh array and map for raycasting
+    tileMeshes.push(obj);
+    meshToTileMap.set(obj, tile);
+
     // add once
     scene.add(obj);
   }
@@ -183,14 +191,6 @@ window.addEventListener('mousemove', (event) => {
     // Update raycaster
     raycaster.setFromCamera(mouse, camera);
 
-    // Get all tile meshes
-    const tileMeshes = [];
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            tileMeshes.push(GRID[r][c].mesh);
-        }
-    }
-
     // Check for intersections
     const intersects = raycaster.intersectObjects(tileMeshes, false);
 
@@ -202,19 +202,13 @@ window.addEventListener('mousemove', (event) => {
     // Set new hover
     if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object;
+        const tile = meshToTileMap.get(intersectedMesh);
         
-        // Find the tile from the mesh
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                const tile = GRID[r][c];
-                if (tile.mesh === intersectedMesh) {
-                    hoveredTile = tile;
-                    // Only change color if not clicked
-                    if (!tile.isClicked) {
-                        tile.setColor(HOVER_COLOR);
-                    }
-                    break;
-                }
+        if (tile) {
+            hoveredTile = tile;
+            // Only change color if not clicked
+            if (!tile.isClicked) {
+                tile.setColor(HOVER_COLOR);
             }
         }
     } else {
@@ -231,31 +225,17 @@ window.addEventListener('click', (event) => {
     // Update raycaster
     raycaster.setFromCamera(mouse, camera);
 
-    // Get all tile meshes
-    const tileMeshes = [];
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            tileMeshes.push(GRID[r][c].mesh);
-        }
-    }
-
     // Check for intersections
     const intersects = raycaster.intersectObjects(tileMeshes, false);
 
     if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object;
+        const tile = meshToTileMap.get(intersectedMesh);
         
-        // Find the tile from the mesh
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                const tile = GRID[r][c];
-                if (tile.mesh === intersectedMesh) {
-                    tile.isClicked = true;
-                    tile.setColor(CLICK_COLOR);
-                    clickedTiles.add(tile);
-                    break;
-                }
-            }
+        if (tile) {
+            tile.isClicked = true;
+            tile.setColor(CLICK_COLOR);
+            clickedTiles.add(tile);
         }
     }
 });
