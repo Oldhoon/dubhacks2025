@@ -136,8 +136,9 @@ class TargetingSystem {
 
         // Get target world position
         const targetWorldPos = this.gridData.gridToWorld(this.targetCol, this.targetRow);
+        console.log('Target World Position:', targetWorldPos);
         const targetPosition = new THREE.Vector3(targetWorldPos.x, targetWorldPos.y, targetWorldPos.z);
-
+        console.log('Target Position Vector3:', targetPosition);
         // Make catapult look at target
         catapultObject.lookAt(targetPosition);
 
