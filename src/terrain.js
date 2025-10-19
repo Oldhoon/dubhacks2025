@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const TERRAIN_SIZE = 5;
+const TERRAIN_SIZE = 4;
 const TERRAIN_COLOR = 0x228B22; // Forest green
 const TERRAIN_DEPTH = 1;
 const TERRAIN_BASE_SCALE = 1.2; // how much wider the base is vs top
@@ -217,14 +217,14 @@ export default class Terrain {
                 texture.offset.set(col * tileW, yOffset);
 
                 // Optional: randomize rotation of the selected sub-tile (0/90/180/270)
-                if (this.atlas.randomRotate) {
-                    const steps = this.atlas.rotationSteps ? Math.max(1, Math.floor(this.atlas.rotationSteps)) : 4;
-                    const stepIndex = Math.floor(Math.random() * steps);
-                    const angle = (Math.PI * 2 * stepIndex) / steps;
-                    // rotate around the center of the selected quadrant
-                    // texture.center.set(col * tileW + tileW / 2, yOffset + tileH / 2);
-                    texture.rotation = angle;
-                }
+                // if (this.atlas.randomRotate) {
+                //     const steps = this.atlas.rotationSteps ? Math.max(1, Math.floor(this.atlas.rotationSteps)) : 4;
+                //     const stepIndex = Math.floor(Math.random() * steps);
+                //     const angle = (Math.PI * 2 * stepIndex) / steps;
+                //     // rotate around the center of the selected quadrant
+                //     // texture.center.set(col * tileW + tileW / 2, yOffset + tileH / 2);
+                //     texture.rotation = angle;
+                // }
                 // No explicit needsUpdate here; TextureLoader will update when image loads
             }
 
@@ -295,11 +295,11 @@ export default class Terrain {
         mesh.position.y = this.depth / 2;
 
         // Optional: randomize orientation (rotates which side is considered front/left/back/right)
-        if (this.randomOrientation) {
-            const step = Math.floor(Math.random() * this.orientationSteps);
-            this.orientation = (Math.PI * 2 * step) / this.orientationSteps;
-            mesh.rotation.y = this.orientation;
-        }
+        // if (this.randomOrientation) {
+        //     const step = Math.floor(Math.random() * this.orientationSteps);
+        //     this.orientation = (Math.PI * 2 * step) / this.orientationSteps;
+        //     mesh.rotation.y = this.orientation;
+        // }
 
         return mesh;
     }

@@ -145,14 +145,28 @@ class TargetingSystem {
         const catapultObject = selected.object;
 
         // Get target world position
-        const targetWorldPos = this.gridData.gridToWorld(this.targetCol, this.targetRow);
-        const targetPosition = new THREE.Vector3(targetWorldPos.x, targetWorldPos.y, targetWorldPos.z);
-
+        const targetWorldPos = this.gridData.GRID[this.targetRow][this.targetCol].mesh;
+        console.log('Target World Position:', targetWorldPos);
+        let targetPosition = new THREE.Vector3();
+        let catapultPos = new THREE.Vector3();
+        catapultObject.updateMatrixWorld(true);
+        catapultObject.getWorldPosition(catapultPos);
+        targetWorldPos.updateMatrixWorld(true);
+        targetWorldPos.getWorldPosition(targetPosition);
+        const catXZ = new THREE.Vector2(catapultPos.x, catapultPos.z);
+        const tarXZ = new THREE.Vector2(targetPosition.x, targetPosition.z);
+        const rotVec = tarXZ.clone().sub(catXZ);
+        let angle = Math.atan2(rotVec.x, rotVec.y);
+        console.log('Target Position Vector3:', targetPosition);
         // Make catapult look at target
-        catapultObject.lookAt(targetPosition);
+        catapultObject.rotation.y = angle - Math.PI / 2;
+        console.log(targetPosition);
+        console.log(targetPosition);
+        console.log(catapultPos);
+        console.log(rotVec);
 
         // add rotation offset to correct aim 
-        catapultObject.rotation.y -= Math.PI /2; 
+        // catapultObject.rotation.y -= Math.PI /2;
 
         console.log(`Catapult aiming at target tile`);
     }

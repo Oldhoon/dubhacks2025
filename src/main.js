@@ -129,6 +129,7 @@ const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
 const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: false };
 const createGrassTile = () => new Terrain(
   TILE_SIZE,
+  TILE_SIZE,
   0x3a9d3a,
   GRASS_TEXTURE_PATH,
   undefined,
@@ -153,6 +154,8 @@ const catapult = new Catapult();
 
 
 // Grid definition with textured tiles
+const GRID_ROWS = 4;
+const GRID_COLS = 4;
 const GRID_ROWS = 4;
 const GRID_COLS = 4;
 const GRID = Array.from({ length: GRID_ROWS }, () =>
