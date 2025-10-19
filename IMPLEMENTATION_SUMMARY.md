@@ -78,7 +78,7 @@ Calculate:
 - Velocity components:
   - vₓ = v₀ * cos(θ) * (Δx/d)
   - vᵧ = v₀ * sin(θ)
-  - vᵧ = v₀ * cos(θ) * (Δz/d)
+  - vᵤ = v₀ * cos(θ) * (Δz/d)
 ```
 
 ### Testing
