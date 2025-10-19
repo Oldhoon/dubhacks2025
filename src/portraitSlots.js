@@ -6,11 +6,12 @@ import Catapult from './catapult.js';
  * PortraitSlots - Manages draggable portrait slots on the selection plane
  */
 class PortraitSlots {
-    constructor(selectionPlane, camera, scene, terrainMeshes = []) {
+    constructor(selectionPlane, camera, scene, terrainMeshes = [], selectionManager = null) {
         this.selectionPlane = selectionPlane;
         this.camera = camera;
         this.scene = scene;
         this.terrainMeshes = terrainMeshes;
+        this.selectionManager = selectionManager;
         this.slots = [];
         this.portraits = [];
         this.dragging = null;
@@ -205,6 +206,15 @@ class PortraitSlots {
                     // Track the spawned catapult
                     this.spawnedCatapults.push(catapult);
 
+                    // Register with selection manager if available
+                    if (this.selectionManager) {
+                        this.selectionManager.addSelectableObject(catapult.object3d, {
+                            type: 'catapult',
+                            index: this.spawnedCatapults.length - 1,
+                            tile: terrainTile // Pass the tile reference for highlighting
+                        });
+                    }
+
                     console.log(`Catapult spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                 } else {
                     // Create sprite at the center of the tile for other portraits
@@ -219,6 +229,16 @@ class PortraitSlots {
 
                     // Track the spawned sprite
                     this.spawnedSprites.push(sprite);
+
+                    // Register with selection manager if available
+                    if (this.selectionManager) {
+                        this.selectionManager.addSelectableObject(sprite.mesh, {
+                            type: 'sprite',
+                            portraitIndex: portraitIndex,
+                            index: this.spawnedSprites.length - 1,
+                            tile: terrainTile // Pass the tile reference for highlighting
+                        });
+                    }
 
                     console.log(`Sprite spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                 }
