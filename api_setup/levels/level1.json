@@ -1,0 +1,20 @@
+{
+  "referenceCode": [
+    "int x = 1;",
+    "x = x + 1;",
+    "int y = x;",
+    "x = 0;"
+  ],
+  "characters": [
+    {
+      "name": "x",
+      "type": "int",
+      "value": "1"
+    },
+    {
+      "name": "y",
+      "type": "int",
+      "value": "x"
+    }
+  ]
+}

@@ -1,14 +1,40 @@
+const fs = require("fs");
+const path = require("path");
 const { extractLevelCode, parseCodeToLevel } = require("./ruleBasedParser");
 
-const code1 = extractLevelCode("level1");
-const code2 = extractLevelCode("level2");
-const code3 = extractLevelCode("level3");
-const code4 = extractLevelCode("level4");
+// list of all level function names in levels.c
+const levelNames = ["level1", "level2", "level3", "level4"];
 
-console.log("----- Raw code from C file -----");
-console.log(code1);
+// ensure output folder exists
+const outputDir = path.join(process.cwd(), "levels");
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir);
+  console.log("📁 Created 'levels' folder");
+}
 
-const levelJson = parseCodeToLevel(code2);
+for (const name of levelNames) {
+  console.log(`\n🔍 Reading ${name}...`);
 
-console.log("\n----- Parsed JSON skeleton -----");
-console.log(levelJson);
+  try {
+    // 1. Read the C code for this level
+    const code = extractLevelCode(name);
+
+    // 2. Parse into structured JSON
+    const parsed = parseCodeToLevel(code);
+
+    // 3. Write to a JSON file
+    const outputPath = path.join(outputDir, `${name}.json`);
+    fs.writeFileSync(outputPath, JSON.stringify(parsed, null, 2));
+
+    console.log(`✅ Generated ${outputPath}`);
+} catch (err) {
+    if (err instanceof Error) {
+      console.error(`❌ Failed to process ${name}: ${err.message}`);
+    } else {
+      console.error(`❌ Failed to process ${name}:`, err);
+    }
+  }
+  
+}
+
+console.log("\n🎯 Done! All level JSONs generated.");

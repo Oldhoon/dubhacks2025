@@ -1,0 +1,20 @@
+{
+  "referenceCode": [
+    "short y = 2;",
+    "short * p_y = &y;",
+    "short z = *p_y;",
+    "z = 0;"
+  ],
+  "characters": [
+    {
+      "name": "y",
+      "type": "short",
+      "value": "2"
+    },
+    {
+      "name": "z",
+      "type": "short",
+      "value": "*p_y"
+    }
+  ]
+}

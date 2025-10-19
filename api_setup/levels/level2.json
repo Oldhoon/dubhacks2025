@@ -1,0 +1,15 @@
+{
+  "referenceCode": [
+    "char x = 1;",
+    "char * p_x = &x;",
+    "*p_x = 4;",
+    "x = 2;"
+  ],
+  "characters": [
+    {
+      "name": "x",
+      "type": "char",
+      "value": "1"
+    }
+  ]
+}
