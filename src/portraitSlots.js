@@ -234,6 +234,11 @@ class PortraitSlots {
                     const { unit, type } = unitData;
                     unit.attachTo(terrainTile);
 
+                    const terrainInstance = terrainData;
+                    if (terrainInstance && typeof terrainInstance.registerUnit === 'function') {
+                        terrainInstance.registerUnit(type, unit);
+                    }
+
                     if (!this.spawnedUnitsByType[type]) {
                         this.spawnedUnitsByType[type] = [];
                     }

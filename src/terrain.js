@@ -13,6 +13,18 @@ const DEFAULT_TOP_JAGGED = { enabled: false, amount: 0.15, innerRadius: 0.8 };
 const GRID_DIVISIONS = 4;
 const TERRAIN_GRID_OFFSET = 0.02;
 const LOADING_SLOT = Symbol('terrain-grid-loading');
+const ASSET_PLACEMENT_RULES = {
+    potion: {
+        requires: ['mage']
+    },
+    tree: {
+        requires: ['lumberjack'],
+        forbidden: ['necromancer']
+    },
+    ghoul: {
+        requires: ['necromancer']
+    }
+};
 
 /**
  * Terrain class representing a simple square block with optional texture overlay
@@ -58,6 +70,7 @@ export default class Terrain {
             tree: new Tree(),
             ghoul: new Ghoul()
         };
+        this.unitOccupants = new Map();
         this.activeAnimations = [];
 
         this.orientation = 0;
@@ -359,6 +372,105 @@ export default class Terrain {
         return this.addAssetToGrid('ghoul');
     }
 
+    registerUnit(type, unit) {
+        if (!type || !unit) {
+            return;
+        }
+
+        let set = this.unitOccupants.get(type);
+        if (!set) {
+            set = new Set();
+            this.unitOccupants.set(type, set);
+        }
+
+        if (!set.has(unit)) {
+            set.add(unit);
+        }
+
+        if (typeof unit === 'object') {
+            unit.__terrainRegistration = { terrain: this, type };
+        }
+    }
+
+    unregisterUnit(unit, type) {
+        if (!unit && !type) {
+            return;
+        }
+
+        let resolvedType = type;
+        if (!resolvedType && unit && unit.__terrainRegistration) {
+            if (unit.__terrainRegistration.terrain === this) {
+                resolvedType = unit.__terrainRegistration.type;
+            }
+        }
+
+        if (!resolvedType) {
+            return;
+        }
+
+        const set = this.unitOccupants.get(resolvedType);
+        if (!set) {
+            return;
+        }
+
+        if (unit && set.has(unit)) {
+            set.delete(unit);
+        }
+
+        if (set.size === 0) {
+            this.unitOccupants.delete(resolvedType);
+        }
+
+        if (unit && unit.__terrainRegistration) {
+            delete unit.__terrainRegistration;
+        }
+    }
+
+    hasUnitType(type) {
+        return this.unitOccupants.has(type);
+    }
+
+    getOccupiedUnitTypes() {
+        const types = new Set();
+        for (const [type, occupants] of this.unitOccupants.entries()) {
+            if (occupants && occupants.size > 0) {
+                types.add(type);
+            }
+        }
+        return types;
+    }
+
+    validateAssetPlacement(type) {
+        const rules = ASSET_PLACEMENT_RULES[type];
+        if (!rules) {
+            return { allowed: true };
+        }
+
+        const occupiedTypes = this.getOccupiedUnitTypes();
+
+        if (rules.requires && rules.requires.length) {
+            const missing = rules.requires.filter((required) => !occupiedTypes.has(required));
+            if (missing.length) {
+                return {
+                    allowed: false,
+                    reason: `requires ${missing.join(', ')}`
+                };
+            }
+        }
+
+        if (rules.forbidden && rules.forbidden.length) {
+            const conflicts = rules.forbidden.filter((forbidden) => occupiedTypes.has(forbidden));
+            if (conflicts.length) {
+                return {
+                    allowed: false,
+                    reason: `conflicts with ${conflicts.join(', ')}`
+                };
+            }
+        }
+
+        return { allowed: true };
+    }
+
     setAssetFactory(type, factory) {
         if (!factory || typeof factory.createInstance !== 'function') {
             throw new Error('Asset factory must provide a createInstance method.');
@@ -400,6 +512,12 @@ export default class Terrain {
     }
 
     async addAssetToGrid(type) {
+        const validation = this.validateAssetPlacement(type);
+        if (!validation.allowed) {
+            console.warn(`Cannot place ${type} on this tile (${validation.reason}).`);
+            return null;
+        }
+
         const slotIndex = this.findNextAvailableSlot();
         if (slotIndex === -1) {
             console.warn(`Terrain grid is full, cannot add ${type}.`);
