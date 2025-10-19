@@ -31,22 +31,48 @@ class TargetingSystem {
      * Create the visual indicator for the target tile
      */
     createTargetIndicator() {
-        // Create a semi-transparent red plane that sits above the tile
-        const indicatorGeometry = new THREE.PlaneGeometry(3, 3);
-        const indicatorMaterial = new THREE.MeshBasicMaterial({
+        const indicatorGroup = new THREE.Group();
+        indicatorGroup.visible = false;
+
+        const ringConfigs = [
+            { inner: 1.1, outer: 1.5, color: 0xffffff, opacity: 0.65 },
+            { inner: 0.7, outer: 1.05, color: this.TARGET_COLOR, opacity: 0.7 },
+            { inner: 0.35, outer: 0.65, color: 0xffffff, opacity: 0.9 }
+        ];
+
+        ringConfigs.forEach(({ inner, outer, color, opacity }, index) => {
+            const ringGeometry = new THREE.RingGeometry(inner, outer, 48);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color,
+                transparent: true,
+                opacity,
+                side: THREE.DoubleSide,
+                depthTest: false,
+                depthWrite: false
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.rotation.x = -Math.PI / 2;
+            ring.renderOrder = 1000 + index;
+            indicatorGroup.add(ring);
+        });
+
+        const centerGeometry = new THREE.CircleGeometry(0.25, 32);
+        const centerMaterial = new THREE.MeshBasicMaterial({
             color: this.TARGET_COLOR,
             transparent: true,
-            opacity: this.TARGET_OPACITY,
+            opacity: 0.85,
             side: THREE.DoubleSide,
             depthTest: false,
             depthWrite: false
         });
+        const center = new THREE.Mesh(centerGeometry, centerMaterial);
+        center.rotation.x = -Math.PI / 2;
+        center.renderOrder = 1010;
+        indicatorGroup.add(center);
 
-        this.targetIndicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
-        this.targetIndicator.rotation.x = -Math.PI / 2; // Lay flat
-        this.targetIndicator.position.y = 0.6; // Slightly above tiles
-        this.targetIndicator.visible = false;
-        this.targetIndicator.renderOrder = 1000; // Render on top
+        indicatorGroup.position.y = 0.6;
+
+        this.targetIndicator = indicatorGroup;
 
         this.scene.add(this.targetIndicator);
     }
@@ -366,9 +392,14 @@ class TargetingSystem {
      */
     update() {
         // Optional: Add pulsing animation to indicator
-        if (this.targetIndicator.visible) {
+        if (this.targetIndicator?.visible) {
             const time = Date.now() * 0.001;
-            this.targetIndicator.material.opacity = this.TARGET_OPACITY + Math.sin(time * 3) * 0.2;
+            const pulse = this.TARGET_OPACITY + Math.sin(time * 3) * 0.2;
+            this.targetIndicator.children.forEach((child) => {
+                if (child.material && 'opacity' in child.material) {
+                    child.material.opacity = THREE.MathUtils.clamp(pulse, 0.2, 0.9);
+                }
+            });
         }
     }
 
@@ -377,8 +408,12 @@ class TargetingSystem {
      */
     dispose() {
         if (this.targetIndicator) {
-            this.targetIndicator.geometry.dispose();
-            this.targetIndicator.material.dispose();
+            this.targetIndicator.traverse((child) => {
+                if (child.isMesh) {
+                    child.geometry?.dispose?.();
+                    child.material?.dispose?.();
+                }
+            });
             this.scene.remove(this.targetIndicator);
         }
 
