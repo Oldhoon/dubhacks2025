@@ -11,7 +11,7 @@
       "outDir": "dist",
       "types": ["node"]
     },
-    "include": ["api_setup/**/*.ts", "parser/**/*.ts"],
+    "include": ["*.ts", "parser/**/*.ts"],
     "ts-node": {
       "esm": true                            // ⬅️ makes `ts-node-esm` pick up ESM settings
     }

@@ -1,49 +1,76 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.extractLevelCode = extractLevelCode;
-exports.parseCodeToLevel = parseCodeToLevel;
-var fs_1 = require("fs");
-// read the code from levels.c
-function extractLevelCode(levelName) {
-    var src = fs_1.default.readFileSync("levels.c", "utf-8");
-    // Match everything between this function’s opening { and its corresponding closing }
-    var match = new RegExp("void\\s+".concat(levelName, "\\s*\\(\\)\\s*{([\\s\\S]*?)^}"), "m").exec(src);
+import * as fs from "fs";
+// ✅ Extracts a specific level function’s code block from levels.c
+export function extractLevelCode(levelName) {
+    const src = fs.readFileSync("levels.c", "utf-8");
+    // Capture everything inside the braces of void levelX() { ... }
+    const match = new RegExp(`void\\s+${levelName}\\s*\\(\\)\\s*{([\\s\\S]*?)^}`, "m").exec(src);
     if (!match)
-        throw new Error("Level ".concat(levelName, " not found"));
+        throw new Error(`Level ${levelName} not found`);
     return match[1].trim();
 }
-// --- Rule-based parser with variable and array detection ---
-function parseCodeToLevel(code) {
-    var lines = code.split("\n").map(function (l) { return l.trim(); }).filter(Boolean);
-    // We'll collect variable declarations here
-    var characters = [];
-    for (var _i = 0, lines_1 = lines; _i < lines_1.length; _i++) {
-        var line = lines_1[_i];
-        // detect arrays like "short trees[4]" or "int arr[10]"
-        var arrayMatch = line.match(/(\w+)\s+(\w+)\[(\d+)\]/);
+export function parseCodeToLevel(code) {
+    const lines = code.split("\n").map(l => l.trim()).filter(Boolean);
+    const characters = [];
+    const pointers = {}; // e.g., { p_y: "y" }
+    for (const line of lines) {
+        // ----- arrays -----
+        const arrayMatch = line.match(/(\w+)\s+(\w+)\[(\d+)\]/);
         if (arrayMatch) {
-            var type = arrayMatch[1], name_1 = arrayMatch[2], size = arrayMatch[3];
+            const [, type, name, size] = arrayMatch;
             characters.push({
-                name: name_1,
-                type: "".concat(type, "[]"),
+                name,
+                type: `${type}[]`,
                 size: Number(size),
                 value: Array(Number(size)).fill(null)
             });
-            continue; // skip to next line
+            continue;
         }
-        // detect pointers or normal variables like "char *p_x = &x;" or "int y = 3;"
-        var varMatch = line.match(/(\w+)\s+(\*?)(\w+)\s*=?\s*(.*)?;/);
-        if (varMatch) {
-            var type = varMatch[1], pointer = varMatch[2], name_2 = varMatch[3], value = varMatch[4];
+        // ----- pointer declarations -----
+        // e.g.  short * p_y = &y;
+        const ptrDecl = line.match(/(\w+)\s+\*\s*(\w+)\s*=\s*&(\w+)/);
+        if (ptrDecl) {
+            const [, type, ptrName, targetName] = ptrDecl;
+            pointers[ptrName] = targetName;
             characters.push({
-                name: name_2,
-                type: pointer ? "".concat(type, "*") : type,
-                value: value ? value.trim() : null
+                name: ptrName,
+                type: `${type}*`,
+                pointsTo: targetName
             });
+            continue;
+        }
+        // ----- simple variable declarations -----
+        const varDecl = line.match(/(\w+)\s+(\w+)\s*=\s*(.+);/);
+        if (varDecl) {
+            const [, type, name, value] = varDecl;
+            characters.push({ name, type, value: value.trim() });
+            continue;
+        }
+        // ----- dereference assignment -----
+        // e.g.  short z = *p_y;
+        const derefDecl = line.match(/(\w+)\s+(\w+)\s*=\s*\*(\w+)/);
+        if (derefDecl) {
+            const [, type, name, ptrName] = derefDecl;
+            const target = pointers[ptrName];
+            characters.push({
+                name,
+                type,
+                value: `*${ptrName}`,
+                source: target ?? null
+            });
+            continue;
+        }
+        // ----- assignment to existing variable -----
+        const assign = line.match(/^(\w+)\s*=\s*(.+);/);
+        if (assign) {
+            const [, name, value] = assign;
+            const existing = characters.find(c => c.name === name);
+            if (existing)
+                existing.value = value.trim();
+            continue;
         }
     }
     return {
         referenceCode: lines,
-        characters: characters
+        characters
     };
 }
