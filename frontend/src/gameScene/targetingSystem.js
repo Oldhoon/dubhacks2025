@@ -47,12 +47,13 @@ class TargetingSystem {
                 transparent: true,
                 opacity,
                 side: THREE.DoubleSide,
-                depthTest: false,
-                depthWrite: false
+                // depthTest: false,
+                // depthWrite: false
             });
             const ring = new THREE.Mesh(ringGeometry, ringMaterial);
             ring.rotation.x = -Math.PI / 2;
-            ring.renderOrder = 1000 + index;
+            ring.position.y = 0.41;
+            // ring.renderOrder = 1000 + index;
             indicatorGroup.add(ring);
         });
 
@@ -62,12 +63,12 @@ class TargetingSystem {
             transparent: true,
             opacity: 0.85,
             side: THREE.DoubleSide,
-            depthTest: false,
-            depthWrite: false
+            // depthTest: false,
+            // depthWrite: false
         });
         const center = new THREE.Mesh(centerGeometry, centerMaterial);
         center.rotation.x = -Math.PI / 2;
-        center.renderOrder = 1010;
+        center.position.y = 0.41;
         indicatorGroup.add(center);
 
         indicatorGroup.position.y = 0.6;
