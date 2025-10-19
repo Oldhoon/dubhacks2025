@@ -156,8 +156,6 @@ const catapult = new Catapult();
 // Grid definition with textured tiles
 const GRID_ROWS = 4;
 const GRID_COLS = 4;
-const GRID_ROWS = 4;
-const GRID_COLS = 4;
 const GRID = Array.from({ length: GRID_ROWS }, () =>
   Array.from({ length: GRID_COLS }, () => createGrassTile())
 );
