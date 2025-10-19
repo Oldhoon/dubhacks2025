@@ -19,7 +19,11 @@ class CameraController {
         this.currentViewObject = null;
 
         // Behind-object view offset (behind and above)
-        this.BEHIND_OFFSET = { x: 0, y: 3, z: 5 };
+        this.BEHIND_OFFSET = { x: -4, y: 2.5, z: -0.7 };
+
+        // Camera rotation offset (in radians)
+        // pitch: tilt up/down, yaw: turn left/right, roll: tilt sideways
+        this.ROTATION_OFFSET = { pitch: -0.2, yaw: -1.6, roll: 0 };
 
         this.setupKeyboardControls();
     }
@@ -74,19 +78,22 @@ class CameraController {
             this.BEHIND_OFFSET.z
         );
 
-        // Rotate the offset by the object's rotation
+        // Rotate the offset by the object's rotation so it stays relative to the object
         offset.applyQuaternion(objectWorldQuat);
 
         // Position camera behind the object
         const cameraPosition = objectWorldPos.clone().add(offset);
         this.camera.position.copy(cameraPosition);
 
-        // Calculate look-at point (in front of the object)
-        const lookDirection = new THREE.Vector3(0, 0, -1);
-        lookDirection.applyQuaternion(objectWorldQuat);
-        const lookAtPoint = objectWorldPos.clone().add(lookDirection.multiplyScalar(10));
+        // Align camera rotation to match object's orientation (point in same direction as object's Z-axis)
+        this.camera.quaternion.copy(objectWorldQuat);
 
-        this.camera.lookAt(lookAtPoint);
+        // Apply rotation offsets
+        const pitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.ROTATION_OFFSET.pitch);
+        const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.ROTATION_OFFSET.yaw);
+        const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), this.ROTATION_OFFSET.roll);
+
+        this.camera.quaternion.multiply(yaw).multiply(pitch).multiply(roll);
 
         this.isObjectView = true;
         this.currentViewObject = object;

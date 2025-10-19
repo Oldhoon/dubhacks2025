@@ -24,12 +24,12 @@ class SelectionManager {
      */
     setupKeyboardControls() {
         window.addEventListener('keydown', (event) => {
-            // Arrow Right or D - Next object
-            if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
+            // E - Next object
+            if (event.key === 'e' || event.key === 'E') {
                 this.selectNext();
             }
-            // Arrow Left or A - Previous object
-            else if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
+            // Q - Previous object
+            else if (event.key === 'q' || event.key === 'Q') {
                 this.selectPrevious();
             }
             // Escape - Deselect

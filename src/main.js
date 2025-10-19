@@ -4,6 +4,7 @@ import Catapult from './catapult.js';
 import PortraitSlots from './portraitSlots.js';
 import SelectionManager from './selectionManager.js';
 import CameraController from './cameraController.js';
+import TargetingSystem from './targetingSystem.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 // Configuration constants
@@ -202,6 +203,14 @@ const selectionManager = new SelectionManager(scene);
 // Initialize camera controller for perspective switching
 const cameraController = new CameraController(camera, selectionManager);
 
+// Initialize targeting system for catapult aiming
+const targetingSystem = new TargetingSystem(scene, {
+    GRID: GRID,
+    ROWS: ROWS,
+    COLS: COLS,
+    gridToWorld: gridToWorld
+});
+
 // Initialize portrait slots on the selection plane (after terrain is created)
 const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMeshes, selectionManager);
 
@@ -214,8 +223,11 @@ const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMe
 function animate() {
     requestAnimationFrame(animate);
 
-    // Update selection manager (breathing effect)
+    // Update selection manager
     selectionManager.update();
+
+    // Update targeting system (pulsing effect)
+    targetingSystem.update();
 
     renderer.render(scene, camera);
 }
