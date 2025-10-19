@@ -50,3 +50,26 @@ npm run build
 - **Lighting**: Ambient (0.5 intensity) + Directional (0.8 intensity) with shadows
 - **Terrain**: Green flat plane with low-poly segmentation
 - **Character**: Red capsule geometry with flat shading
+
+## Testing
+
+This project includes a comprehensive test suite with 66 tests covering all major components.
+
+```bash
+# Run tests
+npm test
+
+# Run tests once
+npm run test:run
+
+# Run linting
+npm run lint
+```
+
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) for detailed testing information.
+
+## Documentation
+
+- [Testing Guide](TESTING_GUIDE.md) - How to run and write tests
+- [Code Review](CODE_REVIEW.md) - Comprehensive code review findings
+- [Test Documentation](tests/README.md) - Test suite details
