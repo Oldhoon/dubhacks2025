@@ -10,6 +10,10 @@ const PORTRAIT_TEXTURE_PATHS = [
     'assets/splash/necromancer_pillars_light.png',
     'assets/splash/mage_magical.png',
     'assets/splash/lumberjack_tattered.png'
+    'assets/splash/catapult_border.png',
+    'assets/splash/necromancer_pillars_light.png',
+    'assets/splash/mage_magical.png',
+    'assets/splash/lumberjack_tattered.png'
 ];
 
 /**
@@ -33,6 +37,22 @@ class PortraitSlots {
         this.textureLoader = new THREE.TextureLoader();
         this.portraitTextures = PORTRAIT_TEXTURE_PATHS.map((path) => this.loadPortraitTexture(path));
 
+        this.SLOT_SIZE = 5;
+        this.SLOT_SPACING = 0.2;
+        this.NORMAL_OPACITY = 1.0;
+        this.DRAG_OPACITY = 1.0;
+                
+        // World Y of the ground (change if your ground is higher/lower)
+        this.GROUND_Y = 0;
+
+        // Constant height above ground where the card should float
+        this.CARD_HEIGHT = 1.5;
+
+        // Infinite horizontal ground plane at y = GROUND_Y
+        this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.GROUND_Y);
+
+        // Scratch vector
+        this._tmpV3 = new THREE.Vector3();
         this.SLOT_SIZE = 5;
         this.SLOT_SPACING = 0.2;
         this.NORMAL_OPACITY = 1.0;
@@ -91,6 +111,7 @@ class PortraitSlots {
 
             // Create portrait placeholder (colorful geometry)
             const portraitGeometry = new THREE.PlaneGeometry(this.SLOT_SIZE * 0.9, this.SLOT_SIZE * 0.9);
+            const portraitGeometry = new THREE.PlaneGeometry(this.SLOT_SIZE * 0.9, this.SLOT_SIZE * 0.9);
             const portraitMaterial = new THREE.MeshBasicMaterial({
                 map: this.getPortraitTexture(i),
                 color: 0xffffff,
@@ -102,6 +123,7 @@ class PortraitSlots {
 
             // Position portrait slightly above slot
             portrait.position.set(xPos, 0, 0.06);
+            portrait.position.applyEuler(this.selectionPlane.rotation.x);
             portrait.position.applyEuler(this.selectionPlane.rotation.x);
 
             portrait.userData = {
@@ -168,7 +190,14 @@ class PortraitSlots {
         this.raycaster.setFromCamera(this.mouse, this.camera);
       
         const intersects = this.raycaster.intersectObjects(this.portraits, true);
+      
+        const intersects = this.raycaster.intersectObjects(this.portraits, true);
         if (intersects.length > 0) {
+          this.dragging = intersects[0].object;
+      
+          // Visual feedback
+          if (this.dragging.material) {
+            this.dragging.material.transparent = true;
           this.dragging = intersects[0].object;
       
           // Visual feedback
@@ -176,7 +205,9 @@ class PortraitSlots {
             this.dragging.material.transparent = true;
             this.dragging.material.opacity = this.DRAG_OPACITY;
           }
+          }
         }
+      }
       }
 
     /**
@@ -184,6 +215,7 @@ class PortraitSlots {
      */
     onMouseMove(event) {
         if (!this.dragging) return;
+      
       
         this.updateMouse(event);
         this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -201,7 +233,22 @@ class PortraitSlots {
       
           this.dragging.position.copy(localPos);
           this.dragging.rotation.x = - Math.PI / 6;
+      
+        // Ray → ground plane
+        if (this.raycaster.ray.intersectPlane(this.groundPlane, this._tmpV3)) {
+          // Lift to the fixed card level above ground
+          this._tmpV3.y = this.GROUND_Y + this.CARD_HEIGHT;
+      
+          // Convert to the card's parent/local space before assigning
+          // (If selectionPlane is the parent, use it; otherwise use dragging.parent)
+          const parent = this.dragging.parent || this.selectionPlane;
+          const localPos = this._tmpV3.clone();
+          parent.worldToLocal(localPos);
+      
+          this.dragging.position.copy(localPos);
+          this.dragging.rotation.x = - Math.PI / 6;
         }
+      }
       }
 
     /**
@@ -223,6 +270,8 @@ class PortraitSlots {
                 const terrainHit = terrainIntersects[0];
                 const terrainTile = terrainHit.object;
                 const terrainData = terrainTile.userData?.terrain ?? null;
+                const terrainTile = terrainHit.object;
+                const terrainData = terrainTile.userData?.terrain ?? null;
                 const terrainMesh = terrainData?.mesh ?? terrainTile;
                 const portraitIndex = this.dragging.userData.slotIndex;
 
@@ -235,13 +284,25 @@ class PortraitSlots {
 
                 if (unitData) {
                     const { unit, type } = unitData;
+                    const terrainInstance = terrainData;
+                    let placementAllowed = true;
 
-                    // Set scene reference for catapults (needed for firing stones)
-                    if (type === 'catapult' && typeof unit.setScene === 'function') {
-                        unit.setScene(this.scene);
+                    if (terrainInstance && typeof terrainInstance.canPlaceUnit === 'function') {
+                        placementAllowed = terrainInstance.canPlaceUnit(type);
                     }
 
-                    unit.attachTo(terrainTile);
+                    if (!placementAllowed) {
+                        console.warn(`Cannot place another ${type} on this tile.`);
+                        if (typeof unit.detach === 'function') {
+                            unit.detach();
+                        }
+                    } else {
+                        // Provide scene context for catapults prior to attachment
+                        if (type === 'catapult' && typeof unit.setScene === 'function') {
+                            unit.setScene(this.scene);
+                        }
+
+                        unit.attachTo(terrainTile);
 
                     if (!this.spawnedUnitsByType[type]) {
                         this.spawnedUnitsByType[type] = [];
@@ -249,15 +310,14 @@ class PortraitSlots {
                     const typeArray = this.spawnedUnitsByType[type];
                     typeArray.push(unit);
 
-                    if (this.selectionManager) {
-                        this.selectionManager.addSelectableObject(unit.object3d, {
-                            type: type,
-                            catapult: unit, // Store reference to the catapult instance
-                            index: typeArray.length - 1,
-                            tile: terrainTile // Pass the tile reference for highlighting
-                        });
-                    }
-
+                        if (this.selectionManager) {
+                            this.selectionManager.addSelectableObject(unit.object3d, {
+                                type: type,
+                                catapult: unit, // Store reference to the catapult instance
+                                index: typeArray.length - 1,
+                                tile: terrainTile // Pass the tile reference for highlighting
+                            });
+                        }
 
                     const label = type.charAt(0).toUpperCase() + type.slice(1);
                     console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
