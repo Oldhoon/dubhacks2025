@@ -3,7 +3,7 @@ import { loadGLTFAsync } from './setup.js';
 
 const DEFAULT_MODEL_PATH = 'assets/catapult/scene.gltf';
 const DEFAULT_SCALE = { x: 0.2, y: 0.2, z: 0.2 };
-const DEFAULT_OFFSET = { x: -0.5, y: 0.1, z: 0.5 };
+const DEFAULT_OFFSET = { x: -0.5, y: 0.5, z: 0.5 };
 
 export default class Catapult {
     constructor({
@@ -52,7 +52,7 @@ export default class Catapult {
 
         this.root.position.set(
             this.offset.x,
-            tileDepth / 2 + this.offset.y,
+            tileDepth + this.offset.y,
             this.offset.z
         );
     }

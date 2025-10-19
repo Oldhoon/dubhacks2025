@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import Sprite from './sprite.js';
+import Catapult from './catapult.js';
 
 /**
  * PortraitSlots - Manages draggable portrait slots on the selection plane
@@ -24,6 +25,7 @@ class PortraitSlots {
         this.DRAG_OPACITY = 0.4;
 
         this.spawnedSprites = []; // Track sprites spawned on terrain
+        this.spawnedCatapults = []; // Track catapults spawned on terrain
 
         this.createSlots();
         this.setupEventListeners();
@@ -185,28 +187,41 @@ class PortraitSlots {
             const terrainIntersects = this.raycaster.intersectObjects(this.terrainMeshes, true);
 
             if (terrainIntersects.length > 0) {
-                // Portrait dropped on terrain - spawn a sprite
+                // Portrait dropped on terrain
                 const terrainHit = terrainIntersects[0];
                 const terrainTile = terrainHit.object;
+                const portraitIndex = this.dragging.userData.slotIndex;
 
                 // Get the center position of the terrain tile
                 const tileWorldPosition = new THREE.Vector3();
                 terrainTile.getWorldPosition(tileWorldPosition);
 
-                // Create sprite at the center of the tile
-                const spritePosition = new THREE.Vector3(
-                    tileWorldPosition.x,
-                    tileWorldPosition.y + 0.5, // Raised above terrain
-                    tileWorldPosition.z
-                );
+                // Check if this is the first portrait (catapult)
+                if (portraitIndex === 0) {
+                    // Spawn a catapult
+                    const catapult = new Catapult();
+                    catapult.attachTo(terrainTile);
 
-                const sprite = new Sprite(this.dragging.userData.slotIndex, spritePosition);
-                sprite.addToScene(this.scene);
+                    // Track the spawned catapult
+                    this.spawnedCatapults.push(catapult);
 
-                // Track the spawned sprite
-                this.spawnedSprites.push(sprite);
+                    console.log(`Catapult spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                } else {
+                    // Create sprite at the center of the tile for other portraits
+                    const spritePosition = new THREE.Vector3(
+                        tileWorldPosition.x,
+                        tileWorldPosition.y + 0.5, // Raised above terrain
+                        tileWorldPosition.z
+                    );
 
-                console.log(`Sprite spawned from portrait ${this.dragging.userData.slotIndex} at tile center`, tileWorldPosition);
+                    const sprite = new Sprite(portraitIndex, spritePosition);
+                    sprite.addToScene(this.scene);
+
+                    // Track the spawned sprite
+                    this.spawnedSprites.push(sprite);
+
+                    console.log(`Sprite spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                }
 
                 // Portrait returns to home position
                 this.dragging.position.copy(this.dragging.userData.homePosition);
@@ -253,6 +268,11 @@ class PortraitSlots {
         this.spawnedSprites.forEach(sprite => {
             sprite.removeFromScene(this.scene);
             sprite.dispose();
+        });
+
+        // Dispose spawned catapults
+        this.spawnedCatapults.forEach(catapult => {
+            catapult.detach();
         });
     }
 }

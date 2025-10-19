@@ -139,7 +139,7 @@ const starterTile = createGrassTile();
 // Ensure the starter tile has no yaw so the catapult doesn't inherit rotation
 starterTile.mesh.rotation.y = 0;
 const catapult = new Catapult();
-catapult.attachTo(starterTile);
+
 
 
 
