@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import Sprite from './sprite.js';
 import Catapult from './catapult.js';
 
 /**
@@ -25,8 +24,7 @@ class PortraitSlots {
         this.NORMAL_OPACITY = 0.9;
         this.DRAG_OPACITY = 0.4;
 
-        this.spawnedSprites = []; // Track sprites spawned on terrain
-        this.spawnedCatapults = []; // Track catapults spawned on terrain
+        this.spawnedEntities = []; // Track all spawned entities (catapults and units)
 
         this.createSlots();
         this.setupEventListeners();
@@ -199,12 +197,12 @@ class PortraitSlots {
 
                 // Check if this is the first portrait (catapult)
                 if (portraitIndex === 0) {
-                    // Spawn a catapult
+                    // Spawn a catapult (uses GLTF model)
                     const catapult = new Catapult();
                     catapult.attachTo(terrainTile);
 
-                    // Track the spawned catapult
-                    this.spawnedCatapults.push(catapult);
+                    // Track the spawned entity
+                    this.spawnedEntities.push(catapult);
 
                     // Register with selection manager if available
                     if (this.selectionManager) {
@@ -217,19 +215,24 @@ class PortraitSlots {
 
                     console.log(`Catapult spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                 } else {
-                    // Create sprite at the center of the tile for other portraits
-                    const spritePosition = new THREE.Vector3(
+                    // Spawn a unit using geometry (uses Catapult class with useGeometry flag)
+                    const unitPosition = new THREE.Vector3(
                         tileWorldPosition.x,
                         tileWorldPosition.y + 0.5, // Raised above terrain
                         tileWorldPosition.z
                     );
 
-                    const sprite = new Sprite(portraitIndex, spritePosition);
-                    sprite.addToScene(this.scene);
+                    const unit = new Catapult({
+                        portraitIndex: portraitIndex,
+                        useGeometry: true,
+                        offset: { x: 0, y: 0, z: 0 }
+                    });
+                    unit.addToScene(this.scene, unitPosition);
 
-                    // Track the spawned sprite
-                    this.spawnedSprites.push(sprite);
+                    // Track the spawned entity
+                    this.spawnedEntities.push(unit);
 
+                    console.log(`Unit spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                     // Register with selection manager if available
                     if (this.selectionManager) {
                         this.selectionManager.addSelectableObject(sprite.mesh, {
@@ -257,10 +260,10 @@ class PortraitSlots {
     }
 
     /**
-     * Get all spawned sprites
+     * Get all spawned entities
      */
-    getSprites() {
-        return this.spawnedSprites;
+    getEntities() {
+        return this.spawnedEntities;
     }
 
     /**
@@ -284,15 +287,10 @@ class PortraitSlots {
             portrait.material.dispose();
         });
 
-        // Dispose spawned sprites
-        this.spawnedSprites.forEach(sprite => {
-            sprite.removeFromScene(this.scene);
-            sprite.dispose();
-        });
-
-        // Dispose spawned catapults
-        this.spawnedCatapults.forEach(catapult => {
-            catapult.detach();
+        // Dispose spawned entities
+        this.spawnedEntities.forEach(entity => {
+            entity.removeFromScene(this.scene);
+            entity.dispose();
         });
     }
 }
