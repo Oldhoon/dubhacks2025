@@ -93,22 +93,31 @@ class TargetingSystem {
             return;
         }
 
-            if (event.key === '1' || event.key === '2' || event.key === '3') {
-                const highlightedTerrain = this.selectionManager.getCurrentHighlightedTerrain?.();
-                const canUseHighlight = highlightedTerrain && (
-                    highlightedTerrain.hasUnitType?.('mage') ||
-                    highlightedTerrain.hasUnitType?.('lumberjack') ||
-                    highlightedTerrain.hasUnitType?.('necromancer')
-                );
-
-                if (!this.isTargetingMode && !canUseHighlight) {
-                    return;
-                }
-
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            const delta = event.key === 'ArrowUp' ? 1 : -1;
+            const handled = this.adjustHighlightedTerrain(delta);
+            if (handled) {
                 event.preventDefault();
-                this.handleSpawnKey(event.key, highlightedTerrain);
+            }
+            return;
+        }
+
+        if (event.key === '1' || event.key === '2' || event.key === '3') {
+            const highlightedTerrain = this.selectionManager.getCurrentHighlightedTerrain?.();
+            const canUseHighlight = highlightedTerrain && (
+                highlightedTerrain.hasUnitType?.('mage') ||
+                highlightedTerrain.hasUnitType?.('lumberjack') ||
+                highlightedTerrain.hasUnitType?.('necromancer')
+            );
+
+            if (!this.isTargetingMode && !canUseHighlight) {
                 return;
             }
+
+            event.preventDefault();
+            this.handleSpawnKey(event.key, highlightedTerrain);
+            return;
+        }
 
         // Only handle WASD and firing when in targeting mode
         if (!this.isTargetingMode) return;
@@ -422,6 +431,69 @@ class TargetingSystem {
                 }
             });
         }
+    }
+
+    adjustHighlightedTerrain(delta) {
+        if (delta === 0) return false;
+
+        const heroToAsset = {
+            mage: {
+                add: 'addPotion',
+                remove: 'removePotion'
+            },
+            lumberjack: {
+                add: 'addTree',
+                remove: 'removeTree'
+            },
+            necromancer: {
+                add: 'addGhoul',
+                remove: 'removeGhoul'
+            }
+        };
+
+        const hasSprite = (terrain) => terrain?.hasUnitType?.('mage') || terrain?.hasUnitType?.('lumberjack') || terrain?.hasUnitType?.('necromancer');
+
+        let terrain = this.selectionManager.getCurrentHighlightedTerrain?.();
+
+        if (!hasSprite(terrain)) {
+            if (!this.isTargetingMode) {
+                return false;
+            }
+            const cursorTerrain = this.getTargetTile()?.tile;
+            if (hasSprite(cursorTerrain)) {
+                terrain = cursorTerrain;
+            }
+        }
+
+        if (!hasSprite(terrain)) {
+            return false;
+        }
+
+        const heroType = terrain.getHeroUnitType?.();
+        if (!heroType) {
+            return false;
+        }
+
+        const handlers = heroToAsset[heroType];
+        if (!handlers) {
+            return false;
+        }
+
+        if (delta > 0) {
+            const addMethod = terrain[handlers.add];
+            if (typeof addMethod === 'function') {
+                addMethod.call(terrain);
+                return true;
+            }
+            return false;
+        }
+
+        const removeMethod = terrain[handlers.remove];
+        if (typeof removeMethod === 'function') {
+            return removeMethod.call(terrain);
+        }
+
+        return false;
     }
 
     /**

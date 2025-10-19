@@ -210,6 +210,27 @@ export function createGameExperience(canvas, options = {}) {
         updatePointersForTerrain(terrain);
     };
 
+    const handleAssetRemoved = (terrain, _assetType) => {
+        const binding = codeBindings.get(terrain);
+        if (!binding) {
+            return;
+        }
+
+        if (binding.count > 0) {
+            binding.count -= 1;
+        }
+
+        emitCodeEvent({
+            type: 'update',
+            id: binding.varName,
+            baseType: binding.baseType,
+            varName: binding.varName,
+            count: binding.count
+        });
+
+        updatePointersForTerrain(terrain);
+    };
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
 
@@ -318,6 +339,7 @@ export function createGameExperience(canvas, options = {}) {
             tile.setCodeHooks({
                 onUnitPlaced: handleUnitPlaced,
                 onAssetPlaced: handleAssetPlaced,
+                onAssetRemoved: handleAssetRemoved,
                 getBinding: (t) => codeBindings.get(t) ?? null,
                 getPointer: (t) => getPointerForTerrain(t)
             });
