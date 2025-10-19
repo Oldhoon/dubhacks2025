@@ -6,8 +6,10 @@ import * as THREE from 'three';
  */
 class TargetingSystem {
     constructor(scene, gridData, selectionManager) {
+    constructor(scene, gridData, selectionManager) {
         this.scene = scene;
         this.gridData = gridData; // { GRID, ROWS, COLS, gridToWorld function }
+        this.selectionManager = selectionManager;
         this.selectionManager = selectionManager;
 
         this.isTargetingMode = false;
@@ -136,9 +138,8 @@ class TargetingSystem {
 
         // Get target world position
         const targetWorldPos = this.gridData.gridToWorld(this.targetCol, this.targetRow);
-        console.log('Target World Position:', targetWorldPos);
         const targetPosition = new THREE.Vector3(targetWorldPos.x, targetWorldPos.y, targetWorldPos.z);
-        console.log('Target Position Vector3:', targetPosition);
+
         // Make catapult look at target
         catapultObject.lookAt(targetPosition);
 

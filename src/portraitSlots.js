@@ -208,11 +208,10 @@ class PortraitSlots {
                 terrainMesh.getWorldPosition(tileWorldPosition);
 
                 // Check if this is the first portrait (catapult)
-                const unitData = this.createUnitForPortrait(portraitIndex);
-
-                if (unitData) {
-                    const { unit, type } = unitData;
-                    unit.attachTo(terrainTile);
+                if (portraitIndex === 0) {
+                    // Spawn a catapult
+                    const catapult = new Catapult();
+                    catapult.attachTo(terrainData ?? terrainMesh);
 
                     if (!this.spawnedUnitsByType[type]) {
                         this.spawnedUnitsByType[type] = [];
@@ -221,10 +220,10 @@ class PortraitSlots {
                     typeArray.push(unit);
 
                     if (this.selectionManager) {
-                        this.selectionManager.addSelectableObject(unit.object3d, {
-                            type: type,
-                            index: typeArray.length - 1,
-                            tile: terrainTile // Pass the tile reference for highlighting
+                        this.selectionManager.addSelectableObject(catapult.object3d, {
+                            type: 'catapult',
+                            index: this.spawnedCatapults.length - 1,
+                            tile: terrainMesh // Pass the tile reference for highlighting
                         });
                     }
 
