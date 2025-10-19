@@ -59,6 +59,13 @@ class TargetingSystem {
                 return;
             }
 
+            if (event.key === '1' || event.key === '2' || event.key === '3') {
+                if (!this.isTargetingMode) return;
+                event.preventDefault();
+                this.handleSpawnKey(event.key);
+                return;
+            }
+
             // Only handle WASD when in targeting mode
             if (!this.isTargetingMode) return;
 
@@ -169,6 +176,33 @@ class TargetingSystem {
         // catapultObject.rotation.y -= Math.PI /2;
 
         console.log(`Catapult aiming at target tile`);
+    }
+
+    handleSpawnKey(key) {
+        const targetInfo = this.getTargetTile();
+        const terrain = targetInfo?.tile;
+        if (!terrain) {
+            console.warn('No terrain tile available for placement.');
+            return;
+        }
+
+        let actionResult = null;
+        if (key === '1' && typeof terrain.addPotion === 'function') {
+            actionResult = terrain.addPotion();
+        } else if (key === '2' && typeof terrain.addTree === 'function') {
+            actionResult = terrain.addTree();
+        } else if (key === '3' && typeof terrain.addGhoul === 'function') {
+            actionResult = terrain.addGhoul();
+        } else {
+            console.warn(`No placement handler for key "${key}".`);
+            return;
+        }
+
+        if (actionResult && typeof actionResult.then === 'function') {
+            actionResult.catch((error) => {
+                console.error('Failed to place asset on terrain:', error);
+            });
+        }
     }
 
     /**
