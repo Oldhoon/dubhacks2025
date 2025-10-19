@@ -261,10 +261,6 @@ class TargetingSystem {
         targetPosition.y += tileDepth * 0.5;
 
         console.log('Firing catapult at target:', this.targetRow, this.targetCol);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> cfb30bb (cylinder)
 
         // Fire with target tile reference for pointer connection
         catapult.fire(targetPosition, { targetTile: targetMesh });
@@ -354,12 +350,6 @@ class TargetingSystem {
             this.previewStone.dispose();
             this.previewStone = null;
         }
-<<<<<<< HEAD
-=======
-        catapult.fire(targetPosition);
->>>>>>> 954e161 (Added images and better card selection mechanics)
-=======
->>>>>>> cfb30bb (cylinder)
     }
 
     /**
