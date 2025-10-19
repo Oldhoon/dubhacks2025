@@ -26,7 +26,8 @@ export default class Catapult {
         this.modelBounds = null;
 
         loadGLTFAsync([this.modelPath], (models) => {
-            const gltfScene = models[0].scene;
+            const gltf = models[0];
+            const gltfScene = gltf.scene;
             gltfScene.scale.set(this.scale.x, this.scale.y, this.scale.z);
             gltfScene.traverse((child) => {
                 if (child.isMesh) {

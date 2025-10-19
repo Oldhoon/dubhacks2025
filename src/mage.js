@@ -20,9 +20,14 @@ export default class Mage {
 
         this.model = null;
         this.parent = null;
+        this.mixer = null;
+        this.actions = {};
+        this.activeAction = null;
+        this.activeClipName = null;
 
         loadGLTFAsync([this.modelPath], (models) => {
-            const gltfScene = models[0].scene;
+            const gltf = models[0];
+            const gltfScene = gltf.scene;
             gltfScene.scale.set(this.scale.x, this.scale.y, this.scale.z);
             gltfScene.traverse((child) => {
                 if (child.isMesh) {
@@ -32,6 +37,7 @@ export default class Mage {
             });
             this.model = gltfScene;
             this.root.add(gltfScene);
+            this.setupAnimations(gltfScene, gltf.animations);
         });
     }
 
@@ -61,6 +67,46 @@ export default class Mage {
         if (this.parent) {
             this.parent.remove(this.root);
             this.parent = null;
+        }
+    }
+
+    setupAnimations(scene, animations = []) {
+        if (!animations.length) return;
+
+        this.mixer = new THREE.AnimationMixer(scene);
+        animations.forEach((clip, index) => {
+            const clipName = clip.name && clip.name.length ? clip.name : `clip_${index}`;
+            const action = this.mixer.clipAction(clip);
+            this.actions[clipName] = action;
+
+            if (!this.activeAction) {
+                action.play();
+                this.activeAction = action;
+                this.activeClipName = clipName;
+            }
+        });
+    }
+
+    playAnimation(clipName, { fadeDuration = 0.25 } = {}) {
+        if (!this.mixer || !this.actions[clipName]) return;
+
+        const nextAction = this.actions[clipName];
+        if (this.activeAction === nextAction) return;
+
+        nextAction.reset().play();
+        nextAction.enabled = true;
+
+        if (this.activeAction) {
+            this.activeAction.crossFadeTo(nextAction, fadeDuration, false);
+        }
+
+        this.activeAction = nextAction;
+        this.activeClipName = clipName;
+    }
+
+    update(delta) {
+        if (this.mixer) {
+            this.mixer.update(delta);
         }
     }
 
