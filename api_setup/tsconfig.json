@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "target": "ES2020",
+      "module": "NodeNext",                     // ⬅️ switch from CommonJs → ESNext
+      "moduleResolution": "NodeNext",         // ⬅️ modern resolver for .ts/.js in ESM
+      "strict": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,   // ⬅️ helps smooth out default imports like fs
+      "resolveJsonModule": true,
+      "skipLibCheck": true,
+      "outDir": "dist",
+      "types": ["node"]
+    },
+    "include": ["*.ts", "parser/**/*.ts"],
+    "ts-node": {
+      "esm": true                            // ⬅️ makes `ts-node-esm` pick up ESM settings
+    }
+  }
+  

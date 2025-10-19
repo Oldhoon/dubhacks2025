@@ -235,32 +235,58 @@ class PortraitSlots {
 
                 if (unitData) {
                     const { unit, type } = unitData;
+                    const terrainInstance = terrainData;
+                    let placementAllowed = true;
 
-                    // Set scene reference for catapults (needed for firing stones)
-                    if (type === 'catapult' && typeof unit.setScene === 'function') {
-                        unit.setScene(this.scene);
+                    if (terrainInstance && typeof terrainInstance.canPlaceUnit === 'function') {
+                        placementAllowed = terrainInstance.canPlaceUnit(type);
                     }
 
-                    unit.attachTo(terrainTile);
+                    if (!placementAllowed) {
+                        console.warn(`Cannot place another ${type} on this tile.`);
+                        if (typeof unit.detach === 'function') {
+                            unit.detach();
+                        }
+                    } else {
+                        // Provide scene context for catapults prior to attachment
+                        if (type === 'catapult' && typeof unit.setScene === 'function') {
+                            unit.setScene(this.scene);
+                        }
 
-                    if (!this.spawnedUnitsByType[type]) {
-                        this.spawnedUnitsByType[type] = [];
+                        unit.attachTo(terrainTile);
+
+                        let registered = true;
+                        if (terrainInstance && typeof terrainInstance.registerUnit === 'function') {
+                            registered = terrainInstance.registerUnit(type, unit);
+                        }
+
+                        if (!registered) {
+                            placementAllowed = false;
+                            if (typeof unit.detach === 'function') {
+                                unit.detach();
+                            }
+                        }
                     }
-                    const typeArray = this.spawnedUnitsByType[type];
-                    typeArray.push(unit);
 
-                    if (this.selectionManager) {
-                        this.selectionManager.addSelectableObject(unit.object3d, {
-                            type: type,
-                            catapult: unit, // Store reference to the catapult instance
-                            index: typeArray.length - 1,
-                            tile: terrainTile // Pass the tile reference for highlighting
-                        });
+                    if (placementAllowed) {
+                        if (!this.spawnedUnitsByType[type]) {
+                            this.spawnedUnitsByType[type] = [];
+                        }
+                        const typeArray = this.spawnedUnitsByType[type];
+                        typeArray.push(unit);
+
+                        if (this.selectionManager) {
+                            this.selectionManager.addSelectableObject(unit.object3d, {
+                                type: type,
+                                catapult: unit, // Store reference to the catapult instance
+                                index: typeArray.length - 1,
+                                tile: terrainTile // Pass the tile reference for highlighting
+                            });
+                        }
+
+                        const label = type.charAt(0).toUpperCase() + type.slice(1);
+                        console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                     }
-
-
-                    const label = type.charAt(0).toUpperCase() + type.slice(1);
-                    console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                 } else {
                     // Create sprite at the center of the tile for other portraits
                     const spritePosition = new THREE.Vector3(

@@ -61,6 +61,13 @@ class TargetingSystem {
                 this.toggleTargetingMode();
                 return;
             }
+            
+            if (event.key === '1' || event.key === '2' || event.key === '3') {
+                if (!this.isTargetingMode) return;
+                event.preventDefault();
+                this.handleSpawnKey(event.key);
+                return;
+            }
 
             // Only handle WASD and firing when in targeting mode
             if (!this.isTargetingMode) return;
