@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { loadGLTFAsync } from './setup.js';
+import Stone from './stone.js';
 
 const DEFAULT_MODEL_PATH = 'assets/catapult/scene.gltf';
 const DEFAULT_SCALE = { x: 0.2, y: 0.2, z: 0.2 };
@@ -24,6 +25,10 @@ export default class Catapult {
         this.model = null;
         this.parent = null;
         this.modelBounds = null;
+
+        // Projectile management
+        this.activeStones = [];
+        this.scene = null;
 
         loadGLTFAsync([this.modelPath], (models) => {
             const gltf = models[0];
@@ -75,6 +80,64 @@ export default class Catapult {
 
     get object3d() {
         return this.root;
+    }
+
+    /**
+     * Set the scene reference (needed for creating stones)
+     */
+    setScene(scene) {
+        this.scene = scene;
+    }
+
+    /**
+     * Fire a stone at the target position
+     * @param {THREE.Vector3} targetPosition - World position to fire at
+     * @param {Object} options - Optional parameters for the stone
+     */
+    fire(targetPosition, options = {}) {
+  
+        // Get catapult world position (launch point)
+        const launchPosition = new THREE.Vector3();
+        this.root.updateMatrixWorld(true);
+        this.root.getWorldPosition(launchPosition);
+
+        // Offset launch position slightly upward from catapult base
+        launchPosition.y += 1;
+
+        // Create and fire stone
+        const stone = new Stone(this.scene, launchPosition, targetPosition, options);
+        stone.fire();
+
+        // Track active stones
+        this.activeStones.push(stone);
+
+        return stone;
+    }
+
+    /**
+     * Update all active projectiles
+     * @param {number} deltaTime - Time since last frame in seconds
+     */
+    update(deltaTime) {
+        // Update all active stones
+        for (let i = this.activeStones.length - 1; i >= 0; i--) {
+            const stone = this.activeStones[i];
+            stone.update(deltaTime);
+
+            // Remove stones that have landed and been hidden
+            if (!stone.isInFlight() && !stone.mesh.visible) {
+                stone.dispose();
+                this.activeStones.splice(i, 1);
+            }
+        }
+    }
+
+    /**
+     * Clean up all active stones
+     */
+    clearStones() {
+        this.activeStones.forEach(stone => stone.dispose());
+        this.activeStones = [];
     }
 
     _normalizeModelFrame(model) {
