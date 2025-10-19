@@ -1,7 +1,7 @@
 // api/generateLevel.ts
 export async function generateLevelFromCode(code: string) {
-    const simulateUrl = "https://YOUR-SIMULATE-ENDPOINT/simulate";
-    const generateUrl = "https://YOUR-GENERATE-ENDPOINT/generate";
+    const simulateUrl = "https://t5rshcbk4m.execute-api.us-east-2.amazonaws.com/default/simulateCode";
+    const generateUrl = "https://5gdaryoaul.execute-api.us-east-2.amazonaws.com/default/generateLevel";
   
     // 1️⃣ Call simulateCode Lambda
     const simRes = await fetch(simulateUrl, {
