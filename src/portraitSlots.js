@@ -5,6 +5,13 @@ import Necromancer from './necromancer.js';
 import Mage from './mage.js';
 import Lumberjack from './lumberjack.js';
 
+const PORTRAIT_TEXTURE_PATHS = [
+    'assets/splash/catapult.png',
+    'assets/splash/necromancer.png',
+    'assets/splash/mage.png',
+    'assets/splash/lumberjack.png'
+];
+
 /**
  * PortraitSlots - Manages draggable portrait slots on the selection plane
  */
@@ -22,6 +29,9 @@ class PortraitSlots {
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
         this.offset = new THREE.Vector3();
+
+        this.textureLoader = new THREE.TextureLoader();
+        this.portraitTextures = PORTRAIT_TEXTURE_PATHS.map((path) => this.loadPortraitTexture(path));
 
         this.SLOT_SIZE = 3;
         this.SLOT_SPACING = 0.5;
@@ -68,9 +78,11 @@ class PortraitSlots {
             this.slots.push(slot);
 
             // Create portrait placeholder (colorful geometry)
-            const portraitGeometry = new THREE.BoxGeometry(this.SLOT_SIZE * 0.8, this.SLOT_SIZE * 0.8, 0.1);
-            const portraitMaterial = new THREE.MeshLambertMaterial({
-                color: this.getPortraitColor(i),
+            const portraitGeometry = new THREE.PlaneGeometry(this.SLOT_SIZE * 0.8, this.SLOT_SIZE * 0.8);
+            const portraitMaterial = new THREE.MeshBasicMaterial({
+                map: this.getPortraitTexture(i),
+                color: 0xffffff,
+                side: THREE.DoubleSide,
                 transparent: true,
                 opacity: this.NORMAL_OPACITY
             });
@@ -99,11 +111,19 @@ class PortraitSlots {
     }
 
     /**
-     * Get distinct color for each portrait placeholder
+     * Load a portrait texture and configure basic color space
      */
-    getPortraitColor(index) {
-        const colors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3];
-        return colors[index % colors.length];
+    loadPortraitTexture(path) {
+        const texture = this.textureLoader.load(path);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        return texture;
+    }
+
+    /**
+     * Retrieve a portrait texture based on the slot index
+     */
+    getPortraitTexture(index) {
+        return this.portraitTextures[index % this.portraitTextures.length];
     }
 
     /**
