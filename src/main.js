@@ -128,13 +128,12 @@ window.addEventListener('resize', () => {
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
 const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: false };
 const createGrassTile = () => new Terrain(
-  TILE_SIZE,
-  TILE_SIZE,
-  0x3a9d3a,
-  GRASS_TEXTURE_PATH,
-  undefined,
-  GRASS_ATLAS,
-  {
+  TILE_SIZE,                      // size
+  0x3a9d3a,                       // color
+  GRASS_TEXTURE_PATH,             // texturePath
+  undefined,                      // baseScale (will use default)
+  GRASS_ATLAS,                    // atlas
+  {                               // options
     jagged: { enabled: true, amount: 0.45 },
     topJagged: { enabled: true, amount: 0.12, innerRadius: 0.8 },
     widthSegments: 14,
