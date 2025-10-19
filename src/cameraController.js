@@ -25,7 +25,7 @@ class CameraController {
 
         // Camera rotation offset (in radians)
         // pitch: tilt up/down, yaw: turn left/right, roll: tilt sideways
-        this.ROTATION_OFFSET = { pitch: -0.2, yaw: -1.6, roll: 0 };
+        this.ROTATION_OFFSET = { pitch: -0.2, yaw: 0, roll: 0 };
         // this.ROTATION_OFFSET = { pitch: 0, yaw: 0, roll: 0 };
 
         this.setupKeyboardControls();
