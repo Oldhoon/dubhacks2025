@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
-import Crosshair from './crosshair.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -60,7 +60,7 @@ scene.add(directionalLight);
 
 // Image-based lighting environment for PBR
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
-const envMap = pmremGenerator.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const envMap = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environment = envMap;
 
 // Flat plane terrain (low-poly style)
