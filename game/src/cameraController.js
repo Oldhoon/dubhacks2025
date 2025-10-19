@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /**
  * CameraController - Manages camera perspective switching
- * Switches between default bird's-eye view and behind-object view
+ * Switches between default bird's-eye view and front view of selected object
  */
 class CameraController {
     constructor(camera, selectionManager) {
@@ -54,7 +54,7 @@ class CameraController {
     }
 
     /**
-     * Switch camera to view from behind the selected object
+     * Switch camera to front view - lower the camera to see characters from the front
      */
     switchToObjectView() {
         const selected = this.selectionManager.getSelectedObject();
@@ -70,38 +70,25 @@ class CameraController {
         const objectWorldPos = new THREE.Vector3();
         object.getWorldPosition(objectWorldPos);
 
-        // Get object's world rotation
-        const objectWorldQuat = new THREE.Quaternion();
-        object.getWorldQuaternion(objectWorldQuat);
-
-        // Calculate camera position behind and above the object
-        const offset = new THREE.Vector3(
-            this.BEHIND_OFFSET.x,
-            this.BEHIND_OFFSET.y,
-            this.BEHIND_OFFSET.z
+        // Lower the camera position on Y-axis to see characters from the front
+        // Keep X and Z similar to default but lower Y to character level
+        const frontViewPosition = new THREE.Vector3(
+            this.defaultPosition.x,
+            2, // Lower Y position to see characters from front
+            this.defaultPosition.z
         );
 
-        // Rotate the offset by the object's rotation so it stays relative to the object
-        offset.applyQuaternion(objectWorldQuat);
+        this.camera.position.copy(frontViewPosition);
 
-        // Position camera behind the object
-        const cameraPosition = objectWorldPos.clone().add(offset);
-        this.camera.position.copy(cameraPosition);
-
-        // Align camera rotation to match object's orientation (point in same direction as object's Z-axis)
-        this.camera.quaternion.copy(objectWorldQuat);
-
-        // Apply rotation offsets
-        const pitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.ROTATION_OFFSET.pitch);
-        const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.ROTATION_OFFSET.yaw);
-        const roll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), this.ROTATION_OFFSET.roll);
-
-        this.camera.quaternion.multiply(yaw).multiply(pitch).multiply(roll);
+        // Look at the selected object (or slightly above it to see the character better)
+        const lookAtTarget = objectWorldPos.clone();
+        lookAtTarget.y += 1; // Look slightly above the base of the object
+        this.camera.lookAt(lookAtTarget);
 
         this.isObjectView = true;
         this.currentViewObject = object;
 
-        console.log(`Camera switched to ${selected.userData.type} view`);
+        console.log(`Camera switched to front view of ${selected.userData.type}`);
     }
 
     /**
