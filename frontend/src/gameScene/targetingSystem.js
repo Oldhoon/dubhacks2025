@@ -93,12 +93,22 @@ class TargetingSystem {
             return;
         }
 
-        if (event.key === '1' || event.key === '2' || event.key === '3') {
-            if (!this.isTargetingMode) return;
-            event.preventDefault();
-            this.handleSpawnKey(event.key);
-            return;
-        }
+            if (event.key === '1' || event.key === '2' || event.key === '3') {
+                const highlightedTerrain = this.selectionManager.getCurrentHighlightedTerrain?.();
+                const canUseHighlight = highlightedTerrain && (
+                    highlightedTerrain.hasUnitType?.('mage') ||
+                    highlightedTerrain.hasUnitType?.('lumberjack') ||
+                    highlightedTerrain.hasUnitType?.('necromancer')
+                );
+
+                if (!this.isTargetingMode && !canUseHighlight) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.handleSpawnKey(event.key, highlightedTerrain);
+                return;
+            }
 
         // Only handle WASD and firing when in targeting mode
         if (!this.isTargetingMode) return;
@@ -222,9 +232,19 @@ class TargetingSystem {
         console.log(`Catapult aiming at target tile`);
     }
 
-    handleSpawnKey(key) {
-        const targetInfo = this.getTargetTile();
-        const terrain = targetInfo?.tile;
+    handleSpawnKey(key, highlightedTerrain) {
+        const hasSprite = (terrain) => terrain?.hasUnitType?.('mage') || terrain?.hasUnitType?.('lumberjack') || terrain?.hasUnitType?.('necromancer');
+
+        let terrain = highlightedTerrain;
+
+        if (!hasSprite(terrain)) {
+            const targetInfo = this.getTargetTile();
+            const cursorTerrain = targetInfo?.tile;
+            if (hasSprite(cursorTerrain)) {
+                terrain = cursorTerrain;
+            }
+        }
+
         if (!terrain) {
             console.warn('No terrain tile available for placement.');
             return;

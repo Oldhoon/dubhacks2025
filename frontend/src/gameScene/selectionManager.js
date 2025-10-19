@@ -5,12 +5,13 @@ import * as THREE from 'three';
  * Highlights the tile that the selected object is placed on
  */
 class SelectionManager {
-    constructor(scene) {
+    constructor(scene, options = {}) {
         this.scene = scene;
         this.selectableObjects = []; // Array of objects that can be selected
         this.currentIndex = -1; // Currently selected object index
         this.currentHighlightedTile = null;
         this.originalTileMaterial = null;
+        this.onHighlightChange = options.onHighlightChange ?? null;
 
         this.HIGHLIGHT_COLOR = 0x00ff00; // Green highlight
         this.HIGHLIGHT_EMISSIVE = 0x00ff00;
@@ -120,11 +121,17 @@ class SelectionManager {
         // First, restore previous tile if any
         if (this.currentHighlightedTile && this.originalTileMaterial) {
             this.currentHighlightedTile.material = this.originalTileMaterial;
+            if (this.onHighlightChange) {
+                this.onHighlightChange(null);
+            }
             this.currentHighlightedTile = null;
             this.originalTileMaterial = null;
         }
 
         if (this.currentIndex === -1 || this.selectableObjects.length === 0) {
+            if (this.onHighlightChange) {
+                this.onHighlightChange(null);
+            }
             return;
         }
 
@@ -159,6 +166,14 @@ class SelectionManager {
         }
 
         console.log(`Selected object ${this.currentIndex + 1}/${this.selectableObjects.length}`, selected.userData);
+
+        if (this.onHighlightChange) {
+            this.onHighlightChange(tile.userData?.terrain ?? null);
+        }
+    }
+
+    getCurrentHighlightedTerrain() {
+        return this.currentHighlightedTile?.userData?.terrain ?? null;
     }
 
     /**

@@ -392,7 +392,12 @@ export function createGameExperience(canvas, options = {}) {
     window.addEventListener('resize', resizeListener);
     cleanupFns.push(() => window.removeEventListener('resize', resizeListener));
 
-    const selectionManager = new SelectionManager(scene);
+    let highlightedTerrain = null;
+    const selectionManager = new SelectionManager(scene, {
+        onHighlightChange: (mesh) => {
+            highlightedTerrain = mesh?.userData?.terrain ?? null;
+        }
+    });
     const cameraController = new CameraController(camera, selectionManager);
     const targetingSystem = new TargetingSystem(
         scene,
