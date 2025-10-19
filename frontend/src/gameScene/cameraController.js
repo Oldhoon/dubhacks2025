@@ -19,7 +19,7 @@ class CameraController {
         this.currentViewObject = null;
 
         // Behind-object view offset (behind and above)
-        this.BEHIND_OFFSET = { x: -4, y: 2.5, z: -0.7 };
+        this.BEHIND_OFFSET = { x: -3, y: 2.0, z: -0.5 };
         // this.BEHIND_OFFSET = { x: 0, y: 0, z: 0 };
 
 

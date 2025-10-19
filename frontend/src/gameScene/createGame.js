@@ -67,7 +67,7 @@ export function createGameExperience(canvas) {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    camera.position.set(0, 30, 22);
+    camera.position.set(0, 26, 19);
     camera.lookAt(0, 0, 4);
     scene.add(camera);
 
