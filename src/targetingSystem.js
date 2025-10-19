@@ -59,7 +59,7 @@ class TargetingSystem {
                 return;
             }
 
-            // Only handle WASD when in targeting mode
+            // Only handle WASD and firing when in targeting mode
             if (!this.isTargetingMode) return;
 
             let moved = false;
@@ -85,6 +85,11 @@ class TargetingSystem {
                     this.targetCol++;
                     moved = true;
                 }
+            } else if (event.key === 'f' || event.key === 'F') {
+                // Fire the catapult
+                event.preventDefault();
+                this.fireCatapult();
+                return;
             }
 
             if (moved) {
@@ -187,6 +192,39 @@ class TargetingSystem {
      */
     isInTargetingMode() {
         return this.isTargetingMode;
+    }
+
+    /**
+     * Fire the selected catapult at the current target
+     */
+    fireCatapult() {
+        const selected = this.selectionManager.getSelectedObject();
+
+        if (!selected || selected.userData.type !== 'catapult') {
+            console.log('No catapult selected to fire');
+            return;
+        }
+
+        // Get the catapult instance
+        const catapult = selected.userData.catapult;
+        if (!catapult || typeof catapult.fire !== 'function') {
+            console.error('Selected object does not have a fire method');
+            return;
+        }
+
+        const targetTile = this.gridData.GRID[this.targetRow][this.targetCol];
+        const targetMesh = targetTile.mesh;
+        const targetPosition = new THREE.Vector3();
+        targetMesh.updateMatrixWorld(true);
+        targetMesh.getWorldPosition(targetPosition);
+
+        const tileDepth = (typeof targetTile.depth === 'number')
+            ? targetTile.depth
+            : targetMesh.userData?.terrain?.depth ?? 0;
+        targetPosition.y += tileDepth * 0.5;
+
+        console.log('Firing catapult at target:', this.targetRow, this.targetCol);
+        catapult.fire(targetPosition);
     }
 
     /**

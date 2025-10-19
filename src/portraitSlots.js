@@ -232,6 +232,12 @@ class PortraitSlots {
 
                 if (unitData) {
                     const { unit, type } = unitData;
+
+                    // Set scene reference for catapults (needed for firing stones)
+                    if (type === 'catapult' && typeof unit.setScene === 'function') {
+                        unit.setScene(this.scene);
+                    }
+
                     unit.attachTo(terrainTile);
 
                     if (!this.spawnedUnitsByType[type]) {
@@ -243,6 +249,7 @@ class PortraitSlots {
                     if (this.selectionManager) {
                         this.selectionManager.addSelectableObject(unit.object3d, {
                             type: type,
+                            catapult: unit, // Store reference to the catapult instance
                             index: typeArray.length - 1,
                             tile: terrainTile // Pass the tile reference for highlighting
                         });
