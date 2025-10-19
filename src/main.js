@@ -12,6 +12,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 const TERRAIN_SIZE = 50;
 const TERRAIN_SEGMENTS = 10;
 
+const TILE_SIZE = 4.5;
+
 // Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue background
@@ -95,7 +97,7 @@ plane.receiveShadow = true;
 scene.add(plane);
 
 // flat plane for displaying unit selection
-const selectionPlaneGeometry = new THREE.PlaneGeometry(17, 3);
+const selectionPlaneGeometry = new THREE.PlaneGeometry(20, 5);
 const selectionPlaneMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xffffff,
     side: THREE.DoubleSide,
@@ -103,7 +105,7 @@ const selectionPlaneMaterial = new THREE.MeshBasicMaterial({
     opacity: 0.8
 }); 
 const selectionPlane = new THREE.Mesh(selectionPlaneGeometry, selectionPlaneMaterial);
-selectionPlane.position.set(0, 0.1, 11); 
+selectionPlane.position.set(0, 1, 13.5); 
 selectionPlane.rotation.x = -Math.PI / 2 + 0.5;
 
 scene.add(selectionPlane);
@@ -126,12 +128,12 @@ window.addEventListener('resize', () => {
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
 const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: false };
 const createGrassTile = () => new Terrain(
-  3,
-  0x3a9d3a,
-  GRASS_TEXTURE_PATH,
-  undefined,
-  GRASS_ATLAS,
-  {
+  TILE_SIZE,                      // size
+  0x3a9d3a,                       // color
+  GRASS_TEXTURE_PATH,             // texturePath
+  undefined,                      // baseScale (will use default)
+  GRASS_ATLAS,                    // atlas
+  {                               // options
     jagged: { enabled: true, amount: 0.45 },
     topJagged: { enabled: true, amount: 0.12, innerRadius: 0.8 },
     widthSegments: 14,
@@ -151,8 +153,8 @@ const catapult = new Catapult();
 
 
 // Grid definition with textured tiles
-const GRID_ROWS = 5;
-const GRID_COLS = 5;
+const GRID_ROWS = 4;
+const GRID_COLS = 4;
 const GRID = Array.from({ length: GRID_ROWS }, () =>
   Array.from({ length: GRID_COLS }, () => createGrassTile())
 );
@@ -161,7 +163,6 @@ GRID[2][0] = starterTile; // maintain the catapult's ground tile
 
 
 // --- grid constants
-const TILE_SIZE = 3;         // tile size in world units
 const TILE_GAP = 0.75;        // gap between tiles in world units
 const TILE_SPACING = TILE_SIZE + TILE_GAP; // total spacing
 const ROWS = GRID.length;

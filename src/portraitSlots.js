@@ -33,8 +33,8 @@ class PortraitSlots {
         this.textureLoader = new THREE.TextureLoader();
         this.portraitTextures = PORTRAIT_TEXTURE_PATHS.map((path) => this.loadPortraitTexture(path));
 
-        this.SLOT_SIZE = 3;
-        this.SLOT_SPACING = 0.5;
+        this.SLOT_SIZE = 4.3;
+        this.SLOT_SPACING = 0.4;
         this.NORMAL_OPACITY = 0.9;
         this.DRAG_OPACITY = 0.4;
 
