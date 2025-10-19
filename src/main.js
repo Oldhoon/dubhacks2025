@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
-import Crosshair from './crosshair.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -85,8 +84,7 @@ const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH, undef
 const starterTile = createGrassTile();
 const catapult = new Catapult();
 catapult.attachTo(starterTile);
-const crosshair = new Crosshair();
-crosshair.attachTo(camera);
+
 
 
 // Grid definition with textured tiles
