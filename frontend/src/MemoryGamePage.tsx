@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import GameplayCanvas from "./components/GameplayCanvas";
 import CodeConsole from "./components/CodeConsole";
 import LevelInfo from "./components/LevelInfo";
