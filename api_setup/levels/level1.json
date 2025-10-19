@@ -13,12 +13,6 @@
       "sprite": "Necromancer",
       "position": [2, 0],
       "value": 1
-    },
-    {
-      "type": "int",
-      "sprite": "Necromancer",
-      "position": [3, 0],
-      "value": 0
     }
   ],
   "steps": [

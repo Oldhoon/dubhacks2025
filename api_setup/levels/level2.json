@@ -13,12 +13,6 @@
       "sprite": "Lumberjack",
       "position": [2, 0],
       "value": 1
-    },
-    {
-      "type": "char*",
-      "sprite": "Catapult",
-      "position": [0, 0],
-      "value": "x"
     }
   ],
   "steps": [
