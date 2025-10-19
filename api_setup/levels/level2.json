@@ -9,7 +9,12 @@
     {
       "name": "x",
       "type": "char",
-      "value": "1"
+      "value": "2"
+    },
+    {
+      "name": "p_x",
+      "type": "char*",
+      "pointsTo": "x"
     }
   ]
 }
