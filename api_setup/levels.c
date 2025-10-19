@@ -26,7 +26,7 @@ void level3() {
 }
 
 void level4() {
-    short trees[4] = {0, 1, 2, 3};
+    char trees[4] = {0, 1, 2, 3};
 
     trees[0] = 0;
     trees[1] = 1;
