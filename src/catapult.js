@@ -3,7 +3,10 @@ import { loadGLTFAsync } from './setup.js';
 
 const DEFAULT_MODEL_PATH = 'assets/catapult/scene.gltf';
 const DEFAULT_SCALE = { x: 0.2, y: 0.2, z: 0.2 };
-const DEFAULT_OFFSET = { x: -0.5, y: 0.5, z: 0.5 };
+const DEFAULT_OFFSET = { x: 0, y: 0, z: 0 };
+
+const TEMP_BOX = new THREE.Box3();
+const TEMP_CENTER = new THREE.Vector3();
 
 export default class Catapult {
     constructor({
@@ -20,6 +23,8 @@ export default class Catapult {
 
         this.model = null;
         this.parent = null;
+        this.modelBounds = null;
+
         loadGLTFAsync([this.modelPath], (models) => {
             const gltf = models[0];
             const gltfScene = gltf.scene;
@@ -30,13 +35,15 @@ export default class Catapult {
                     child.receiveShadow = true;
                 }
             });
+
+            this._normalizeModelFrame(gltfScene);
             this.model = gltfScene;
             this.root.add(gltfScene);
         });
     }
 
     attachTo(target, { depth } = {}) {
-        const parent = target?.mesh ?? target;
+        const parent = this._resolveParent(target);
         if (!parent || typeof parent.add !== 'function') {
             throw new Error('Catapult.attachTo requires a Terrain instance or THREE.Object3D.');
         }
@@ -45,16 +52,18 @@ export default class Catapult {
             this.parent.remove(this.root);
         }
 
-        const tileDepth = typeof depth === 'number' ? depth : (target?.depth ?? 0);
-
         parent.add(this.root);
         this.parent = parent;
 
+        const surfaceHeight = this._getParentSurfaceHeight(parent, depth);
+
         this.root.position.set(
             this.offset.x,
-            tileDepth + this.offset.y,
+            surfaceHeight + this.offset.y,
             this.offset.z
         );
+
+        this.root.updateMatrixWorld(true);
     }
 
     detach() {
@@ -66,5 +75,67 @@ export default class Catapult {
 
     get object3d() {
         return this.root;
+    }
+
+    _normalizeModelFrame(model) {
+        TEMP_BOX.setFromObject(model);
+        if (TEMP_BOX.isEmpty()) {
+            return;
+        }
+
+        TEMP_BOX.getCenter(TEMP_CENTER);
+        const bottomCenter = new THREE.Vector3(
+            TEMP_CENTER.x,
+            TEMP_BOX.min.y,
+            TEMP_CENTER.z
+        );
+
+        model.position.sub(bottomCenter);
+        model.updateMatrixWorld(true);
+
+        const size = new THREE.Vector3();
+        TEMP_BOX.getSize(size);
+        this.modelBounds = {
+            size,
+            bottomCenter
+        };
+    }
+
+    _resolveParent(target) {
+        if (!target) {
+            return null;
+        }
+
+        if (target.mesh instanceof THREE.Object3D) {
+            return target.mesh;
+        }
+
+        if (target.userData?.terrain?.mesh instanceof THREE.Object3D) {
+            return target.userData.terrain.mesh;
+        }
+
+        return target;
+    }
+
+    _getParentSurfaceHeight(parent, overrideDepth) {
+        if (typeof overrideDepth === 'number') {
+            return overrideDepth;
+        }
+
+        if (parent?.isMesh && parent.geometry) {
+            const geometry = parent.geometry;
+            if (!geometry.boundingBox) {
+                geometry.computeBoundingBox();
+            }
+            const bbox = geometry.boundingBox;
+            const scaleY = parent.scale?.y ?? 1;
+            return bbox.max.y * scaleY;
+        }
+
+        if (parent?.userData?.terrain?.depth) {
+            return parent.userData.terrain.depth;
+        }
+
+        return 0;
     }
 }

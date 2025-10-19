@@ -225,7 +225,7 @@ export default class Terrain {
                     // texture.center.set(col * tileW + tileW / 2, yOffset + tileH / 2);
                     texture.rotation = angle;
                 }
-                texture.needsUpdate = true;
+                // No explicit needsUpdate here; TextureLoader will update when image loads
             }
 
             // Create material with texture for top face
@@ -251,7 +251,7 @@ export default class Terrain {
                 const yOffset = Math.random() * (1 - windowV);
                 sideTex.repeat.set(1, windowV);
                 sideTex.offset.set(0, yOffset);
-                sideTex.needsUpdate = true;
+                // No explicit needsUpdate; image load will trigger update automatically
                 sideMaterial = new THREE.MeshStandardMaterial({
                     map: sideTex,
                     roughness: 1.0,
@@ -287,6 +287,9 @@ export default class Terrain {
         const mesh = new THREE.Mesh(geometry, materials);
         mesh.receiveShadow = true;
         mesh.castShadow = true;
+        mesh.userData = mesh.userData || {};
+        mesh.userData.terrain = this;
+        mesh.userData.isTerrain = true;
 
         // Position the block so its bottom sits at y = 0
         mesh.position.y = this.depth / 2;
