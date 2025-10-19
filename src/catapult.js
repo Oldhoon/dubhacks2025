@@ -5,6 +5,9 @@ const DEFAULT_MODEL_PATH = 'assets/catapult/scene.gltf';
 const DEFAULT_SCALE = { x: 0.2, y: 0.2, z: 0.2 };
 const DEFAULT_OFFSET = { x: -0.5, y: 0.5, z: 0.5 };
 
+// Shared geometry for all unit spheres to reduce memory usage
+const SHARED_UNIT_GEOMETRY = new THREE.SphereGeometry(0.5, 16, 16);
+
 /**
  * Catapult/Unit class - Represents game entities (units, structures) on the terrain
  * Supports both GLTF models and simple geometry as placeholders
@@ -51,14 +54,14 @@ export default class Catapult {
 
     /**
      * Create a simple geometry mesh (sphere) for non-model entities
+     * Uses shared geometry to reduce memory usage
      */
     createGeometryMesh() {
-        const geometry = new THREE.SphereGeometry(0.5, 16, 16);
         const material = new THREE.MeshLambertMaterial({
             color: this.getEntityColor(this.portraitIndex)
         });
 
-        const mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(SHARED_UNIT_GEOMETRY, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
@@ -112,15 +115,9 @@ export default class Catapult {
 
     /**
      * Remove entity from its parent (scene or terrain)
+     * Alias: detach()
      */
-    removeFromScene(scene) {
-        if (this.parent) {
-            this.parent.remove(this.root);
-            this.parent = null;
-        }
-    }
-
-    detach() {
+    removeFromScene() {
         if (this.parent) {
             this.parent.remove(this.root);
             this.parent = null;
@@ -128,11 +125,19 @@ export default class Catapult {
     }
 
     /**
+     * Alias for removeFromScene() for backward compatibility
+     */
+    detach() {
+        this.removeFromScene();
+    }
+
+    /**
      * Cleanup resources
+     * Note: Geometry is shared, so we only dispose of the material
      */
     dispose() {
         if (this.model && this.model.isMesh) {
-            this.model.geometry.dispose();
+            // Don't dispose shared geometry, only the material
             this.model.material.dispose();
         }
     }
