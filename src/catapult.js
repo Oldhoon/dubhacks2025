@@ -115,9 +115,10 @@ export default class Catapult {
 
     /**
      * Remove entity from its parent (scene or terrain)
+     * For API consistency with Terrain class, accepts scene parameter but uses tracked parent
      * Alias: detach()
      */
-    removeFromScene() {
+    removeFromScene(scene) {
         if (this.parent) {
             this.parent.remove(this.root);
             this.parent = null;
@@ -133,12 +134,31 @@ export default class Catapult {
 
     /**
      * Cleanup resources
-     * Note: Geometry is shared, so we only dispose of the material
+     * Note: Simple geometry is shared, so we only dispose of materials for those
      */
     dispose() {
-        if (this.model && this.model.isMesh) {
-            // Don't dispose shared geometry, only the material
-            this.model.material.dispose();
+        if (this.model) {
+            if (this.model.isMesh) {
+                // Simple geometry unit - only dispose material (geometry is shared)
+                this.model.material.dispose();
+            } else if (this.model.isObject3D) {
+                // GLTF model - traverse and dispose all meshes and materials
+                this.model.traverse((child) => {
+                    if (child.isMesh) {
+                        if (child.geometry) {
+                            child.geometry.dispose();
+                        }
+                        if (child.material) {
+                            // Handle both single material and material arrays
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(material => material.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    }
+                });
+            }
         }
     }
 

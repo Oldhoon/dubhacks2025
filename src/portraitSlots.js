@@ -268,7 +268,7 @@ class PortraitSlots {
 
         // Dispose spawned entities
         this.spawnedEntities.forEach(entity => {
-            entity.removeFromScene();
+            entity.removeFromScene(this.scene);
             entity.dispose();
         });
     }
