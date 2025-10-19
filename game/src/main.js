@@ -144,21 +144,12 @@ const createGrassTile = () => new Terrain(
     sideTexturePath: 'assets/tiles/Texture/Side Cliff IMG.png'
   }
 );
-const starterTile = createGrassTile();
-// Ensure the starter tile has no yaw so the catapult doesn't inherit rotation
-starterTile.mesh.rotation.y = 0;
-const catapult = new Catapult();
-
-
-
-
 // Grid definition with textured tiles
 const GRID_ROWS = 4;
 const GRID_COLS = 4;
 const GRID = Array.from({ length: GRID_ROWS }, () =>
   Array.from({ length: GRID_COLS }, () => createGrassTile())
 );
-GRID[2][0] = starterTile; // maintain the catapult's ground tile
 
 
 
@@ -339,7 +330,7 @@ function animate() {
     // Update targeting system (pulsing effect)
     targetingSystem.update();
 
-    // Update animated units
+    // Update animated units (includes catapults and their projectiles)
     portraitSlots.update(delta);
 
     for (let r = 0; r < ROWS; r++) {
