@@ -12,6 +12,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 const TERRAIN_SIZE = 50;
 const TERRAIN_SEGMENTS = 10;
 
+const TILE_SIZE = 4.5;
+
 // Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue background
@@ -126,7 +128,7 @@ window.addEventListener('resize', () => {
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
 const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: false };
 const createGrassTile = () => new Terrain(
-  3,
+  TILE_SIZE,
   0x3a9d3a,
   GRASS_TEXTURE_PATH,
   undefined,
@@ -151,8 +153,8 @@ const catapult = new Catapult();
 
 
 // Grid definition with textured tiles
-const GRID_ROWS = 5;
-const GRID_COLS = 5;
+const GRID_ROWS = 4;
+const GRID_COLS = 4;
 const GRID = Array.from({ length: GRID_ROWS }, () =>
   Array.from({ length: GRID_COLS }, () => createGrassTile())
 );
@@ -161,7 +163,6 @@ GRID[2][0] = starterTile; // maintain the catapult's ground tile
 
 
 // --- grid constants
-const TILE_SIZE = 3;         // tile size in world units
 const TILE_GAP = 0.75;        // gap between tiles in world units
 const TILE_SPACING = TILE_SIZE + TILE_GAP; // total spacing
 const ROWS = GRID.length;

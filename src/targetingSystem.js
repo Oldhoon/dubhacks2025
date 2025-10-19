@@ -97,6 +97,13 @@ class TargetingSystem {
      * Toggle targeting mode on/off
      */
     toggleTargetingMode() {
+        // Only allow targeting mode if a catapult is selected
+        const selected = this.selectionManager.getSelectedObject();
+        if (!selected || selected.userData.type !== 'catapult') {
+            console.log('Please select a catapult first to use targeting mode');
+            return;
+        }
+
         this.isTargetingMode = !this.isTargetingMode;
         this.targetIndicator.visible = this.isTargetingMode;
 

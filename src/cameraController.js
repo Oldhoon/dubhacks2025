@@ -20,10 +20,13 @@ class CameraController {
 
         // Behind-object view offset (behind and above)
         this.BEHIND_OFFSET = { x: -4, y: 2.5, z: -0.7 };
+        // this.BEHIND_OFFSET = { x: 0, y: 0, z: 0 };
+
 
         // Camera rotation offset (in radians)
         // pitch: tilt up/down, yaw: turn left/right, roll: tilt sideways
         this.ROTATION_OFFSET = { pitch: -0.2, yaw: -1.6, roll: 0 };
+        // this.ROTATION_OFFSET = { pitch: 0, yaw: 0, roll: 0 };
 
         this.setupKeyboardControls();
     }

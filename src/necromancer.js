@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { loadGLTFAsync } from './setup.js';
 
 const DEFAULT_MODEL_PATH = 'assets/sprites/necromancer/scene.gltf';
-const DEFAULT_SCALE = { x: 0.004, y: 0.004, z: 0.004 };
+const DEFAULT_SCALE = { x: 0.002, y: 0.002, z: 0.002 };
 const DEFAULT_OFFSET = { x: 0, y: 0.5, z: 0 };
 
 export default class Necromancer {
