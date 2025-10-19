@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { loadGLTFAsync } from './setup.js';
 
 const DEFAULT_MODEL_PATH = 'assets/sprites/lumberjack/scene.gltf';
-const DEFAULT_SCALE = { x: 1.0, y: 1.0, z: 1.0 };
+const DEFAULT_SCALE = { x: 0.5, y: 0.5, z: 0.5 };
 const DEFAULT_OFFSET = { x: 0, y: 0.5, z: 0 };
 
 export default class Lumberjack {
