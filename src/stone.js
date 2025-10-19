@@ -199,8 +199,11 @@ export default class Stone {
         this.isActive = true;
         this.hasLanded = false;
 
-        this.showTrajectory();
-        setTimeout(() => this.hideTrajectory(), 500);
+        // Only show trajectory if explicitly requested (default: false when firing)
+        if (options.showTrajectory !== false) {
+            this.showTrajectory();
+            setTimeout(() => this.hideTrajectory(), 500);
+        }
     }
 
     /**

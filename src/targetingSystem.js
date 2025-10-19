@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import Stone from './stone.js';
 
 /**
  * TargetingSystem - Manages tile targeting for catapult aiming
@@ -9,7 +10,6 @@ class TargetingSystem {
         this.scene = scene;
         this.gridData = gridData; // { GRID, ROWS, COLS, gridToWorld function }
         this.selectionManager = selectionManager;
-        this.selectionManager = selectionManager;
 
         this.isTargetingMode = false;
         this.targetRow = 2; // Start in center
@@ -18,6 +18,9 @@ class TargetingSystem {
         this.targetIndicator = null;
         this.TARGET_COLOR = 0xff0000; // Red indicator
         this.TARGET_OPACITY = 0.5;
+
+        // Preview trajectory line
+        this.previewStone = null;
 
         this.createTargetIndicator();
         this.setupKeyboardControls();
@@ -113,9 +116,13 @@ class TargetingSystem {
         this.targetIndicator.visible = this.isTargetingMode;
 
         if (this.isTargetingMode) {
+            // Create preview stone for trajectory visualization
+            this.createPreviewTrajectory();
             this.updateTargetPosition();
-            console.log('Targeting mode ON - Use WASD to move target, Spacebar to exit');
+            console.log('Targeting mode ON - Use WASD to move target, F to fire, Spacebar to exit');
         } else {
+            // Clean up preview
+            this.clearPreviewTrajectory();
             console.log('Targeting mode OFF');
         }
     }
@@ -132,6 +139,9 @@ class TargetingSystem {
 
         // Rotate selected catapult to face the target
         this.aimCatapultAtTarget();
+
+        // Update preview trajectory
+        this.updatePreviewTrajectory();
     }
 
     /**
@@ -251,7 +261,95 @@ class TargetingSystem {
         targetPosition.y += tileDepth * 0.5;
 
         console.log('Firing catapult at target:', this.targetRow, this.targetCol);
-        catapult.fire(targetPosition);
+
+        // Fire with target tile reference for pointer connection
+        catapult.fire(targetPosition, { targetTile: targetMesh });
+    }
+
+    /**
+     * Create a preview stone to show trajectory
+     */
+    createPreviewTrajectory() {
+        if (this.previewStone) {
+            this.clearPreviewTrajectory();
+        }
+
+        const selected = this.selectionManager.getSelectedObject();
+        if (!selected || selected.userData.type !== 'catapult') {
+            return;
+        }
+
+        const catapult = selected.userData.catapult;
+        if (!catapult) return;
+
+        // Get catapult position
+        const launchPosition = new THREE.Vector3();
+        catapult.root.updateMatrixWorld(true);
+        catapult.root.getWorldPosition(launchPosition);
+        launchPosition.y += 1.5; // Offset for launch point
+
+        // Get initial target position
+        const targetTile = this.gridData.GRID[this.targetRow][this.targetCol];
+        const targetPosition = new THREE.Vector3();
+        targetTile.mesh.updateMatrixWorld(true);
+        targetTile.mesh.getWorldPosition(targetPosition);
+        const tileDepth = (typeof targetTile.depth === 'number')
+            ? targetTile.depth
+            : targetTile.mesh.userData?.terrain?.depth ?? 0;
+        targetPosition.y += tileDepth * 0.5;
+
+        // Create a stone just for the trajectory preview
+        this.previewStone = new Stone(this.scene, launchPosition, targetPosition);
+        this.previewStone.showTrajectory();
+        this.previewStone.mesh.visible = false; // Don't show the stone itself
+    }
+
+    /**
+     * Update the preview trajectory when target changes
+     */
+    updatePreviewTrajectory() {
+        if (!this.previewStone || !this.isTargetingMode) {
+            return;
+        }
+
+        const selected = this.selectionManager.getSelectedObject();
+        if (!selected || selected.userData.type !== 'catapult') {
+            return;
+        }
+
+        const catapult = selected.userData.catapult;
+        if (!catapult) return;
+
+        // Get catapult position
+        const launchPosition = new THREE.Vector3();
+        catapult.root.updateMatrixWorld(true);
+        catapult.root.getWorldPosition(launchPosition);
+        launchPosition.y += 1.5;
+
+        // Get target position
+        const targetTile = this.gridData.GRID[this.targetRow][this.targetCol];
+        const targetPosition = new THREE.Vector3();
+        targetTile.mesh.updateMatrixWorld(true);
+        targetTile.mesh.getWorldPosition(targetPosition);
+        const tileDepth = (typeof targetTile.depth === 'number')
+            ? targetTile.depth
+            : targetTile.mesh.userData?.terrain?.depth ?? 0;
+        targetPosition.y += tileDepth * 0.5;
+
+        // Update the preview stone's trajectory
+        this.previewStone.setEndpoints(launchPosition, targetPosition);
+        this.previewStone.updateTrajectory();
+        this.previewStone.showTrajectory();
+    }
+
+    /**
+     * Clear the preview trajectory
+     */
+    clearPreviewTrajectory() {
+        if (this.previewStone) {
+            this.previewStone.dispose();
+            this.previewStone = null;
+        }
     }
 
     /**
@@ -274,6 +372,8 @@ class TargetingSystem {
             this.targetIndicator.material.dispose();
             this.scene.remove(this.targetIndicator);
         }
+
+        this.clearPreviewTrajectory();
     }
 }
 
