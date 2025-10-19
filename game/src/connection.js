@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /**
  * Connection - Visual representation of a pointer from catapult to tile
- * Displays as a glowing cylinder connecting the two points
+ * Renders as a glowing laser beam stretching between two targets
  */
 export default class Connection {
     constructor(scene, startObject, endObject, options = {}) {
@@ -11,10 +11,19 @@ export default class Connection {
         this.endObject = endObject;
 
         // Visual properties
-        this.color = options.color ?? 0x00ffff; // Cyan glow
+        this.color = options.color ?? 0x00ffff;
         this.radius = options.radius ?? 0.1;
         this.glowIntensity = options.glowIntensity ?? 1.5;
         this.opacity = options.opacity ?? 0.8;
+
+        // Laser shader uniforms and animation time
+        this.uniforms = {
+            color: { value: new THREE.Color(this.color) },
+            time: { value: 0 },
+            opacity: { value: this.opacity },
+            glowIntensity: { value: this.glowIntensity }
+        };
+        this.elapsedTime = 0;
 
         // Connection mesh
         this.mesh = null;
@@ -27,81 +36,120 @@ export default class Connection {
     }
 
     /**
-     * Create the glowing cylinder connection
+     * Create the laser beam connection
      */
     createConnection() {
-        // Get positions
         const start = new THREE.Vector3();
         const end = new THREE.Vector3();
         this.updatePositions(start, end);
 
-        // Calculate distance and midpoint
         const distance = start.distanceTo(end);
         const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
 
-        // Create cylinder geometry
-        const geometry = new THREE.CylinderGeometry(this.radius, this.radius, distance, 8, 1);
+        // Core beam geometry and shader material
+        const coreRadius = this.radius * 0.35;
+        const coreGeometry = new THREE.CylinderGeometry(coreRadius, coreRadius, distance, 32, 1, true);
+        const coreMaterial = this._buildLaserMaterial();
 
-        // Core cylinder material
-        const material = new THREE.MeshStandardMaterial({
-            color: this.color,
-            emissive: this.color,
-            emissiveIntensity: this.glowIntensity,
-            transparent: true,
-            opacity: this.opacity,
-            metalness: 0.3,
-            roughness: 0.2
-        });
+        this.mesh = new THREE.Mesh(coreGeometry, coreMaterial);
+        this.mesh.renderOrder = 10;
 
-        this.mesh = new THREE.Mesh(geometry, material);
-
-        // Outer glow layer
-        const glowGeometry = new THREE.CylinderGeometry(
-            this.radius * 1.5,
-            this.radius * 1.5,
-            distance,
-            8,
-            1
-        );
+        // Halo layer for a softer glow falloff
+        const glowRadius = this.radius * 1.4;
+        const glowGeometry = new THREE.CylinderGeometry(glowRadius, glowRadius, distance, 24, 1, true);
         const glowMaterial = new THREE.MeshBasicMaterial({
             color: this.color,
             transparent: true,
-            opacity: this.opacity * 0.3,
-            side: THREE.BackSide
+            opacity: this.opacity * 0.35,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
         });
 
         this.glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+        this.glowMesh.renderOrder = 9;
 
-        // Position and orient the cylinder
         this.mesh.position.copy(midpoint);
         this.glowMesh.position.copy(midpoint);
-
-        // Rotate cylinder to point from start to end
-        const direction = new THREE.Vector3().subVectors(end, start);
-        const orientation = new THREE.Matrix4();
-        orientation.lookAt(start, end, new THREE.Object3D().up);
-        orientation.multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-        this.mesh.setRotationFromMatrix(orientation);
-        this.glowMesh.setRotationFromMatrix(orientation);
+        this._orientMeshes(start, end);
 
         this.group.add(this.mesh);
         this.group.add(this.glowMesh);
     }
 
     /**
+     * Build the shader material used for the laser core
+     * The shader renders a hot center with animated streaks that scroll along the beam
+     */
+    _buildLaserMaterial() {
+        return new THREE.ShaderMaterial({
+            uniforms: this.uniforms,
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                uniform float time;
+                uniform float opacity;
+                uniform float glowIntensity;
+                varying vec2 vUv;
+
+                float peak(float x) {
+                    return pow(1.0 - clamp(x, 0.0, 1.0), 3.0);
+                }
+
+                void main() {
+                    float radial = abs(vUv.x - 0.5) * 2.0;
+                    float core = peak(radial);
+                    float pulse = 0.6 + 0.4 * sin(time * 6.0 + vUv.y * 18.0);
+                    float streaks = 0.35 + 0.65 * sin(vUv.y * 24.0 - time * 20.0);
+                    float intensity = core * (1.2 + pulse * 0.8) + streaks * 0.25;
+
+                    vec3 finalColor = color * intensity * glowIntensity;
+                    float finalAlpha = clamp(intensity * opacity, 0.0, 1.0);
+
+                    if (finalAlpha < 0.01) discard;
+                    gl_FragColor = vec4(finalColor, finalAlpha);
+                }
+            `,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        });
+    }
+
+    /**
+     * Orient both meshes so the laser points from start to end
+     */
+    _orientMeshes(start, end) {
+        const orientation = new THREE.Matrix4();
+        orientation.lookAt(start, end, new THREE.Object3D().up);
+        orientation.multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+
+        if (this.mesh) {
+            this.mesh.setRotationFromMatrix(orientation);
+        }
+        if (this.glowMesh) {
+            this.glowMesh.setRotationFromMatrix(orientation);
+        }
+    }
+
+    /**
      * Get world positions from objects
      */
     updatePositions(startVec, endVec) {
-        // Get start position (catapult)
         this.startObject.updateMatrixWorld(true);
         this.startObject.getWorldPosition(startVec);
         startVec.y += 0.5; // Offset slightly up
 
-        // Get end position (tile center top)
         this.endObject.updateMatrixWorld(true);
         this.endObject.getWorldPosition(endVec);
 
-        // Add tile depth to get top surface
         const tileData = this.endObject.userData?.terrain;
         if (tileData && typeof tileData.depth === 'number') {
             endVec.y += tileData.depth * 0.5;
@@ -114,45 +162,38 @@ export default class Connection {
     update() {
         if (!this.mesh || !this.glowMesh) return;
 
-        // Get updated positions
         const start = new THREE.Vector3();
         const end = new THREE.Vector3();
         this.updatePositions(start, end);
 
-        // Calculate new distance and midpoint
         const distance = start.distanceTo(end);
         const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
 
-        // Update scale (length)
-        this.mesh.scale.y = distance / this.mesh.geometry.parameters.height;
-        this.glowMesh.scale.y = distance / this.glowMesh.geometry.parameters.height;
+        const meshHeight = this.mesh.geometry.parameters.height || 1;
+        const glowHeight = this.glowMesh.geometry.parameters.height || 1;
+        this.mesh.scale.y = distance / meshHeight;
+        this.glowMesh.scale.y = distance / glowHeight;
 
-        // Update position
         this.mesh.position.copy(midpoint);
         this.glowMesh.position.copy(midpoint);
-
-        // Update rotation
-        const direction = new THREE.Vector3().subVectors(end, start);
-        const orientation = new THREE.Matrix4();
-        orientation.lookAt(start, end, new THREE.Object3D().up);
-        orientation.multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-        this.mesh.setRotationFromMatrix(orientation);
-        this.glowMesh.setRotationFromMatrix(orientation);
+        this._orientMeshes(start, end);
     }
 
     /**
-     * Animate the glow effect
+     * Animate the laser effect
      */
     animate(deltaTime) {
         if (!this.mesh) return;
 
-        // Pulse the emissive intensity
-        const time = Date.now() * 0.001;
-        const pulse = Math.sin(time * 2) * 0.3 + 1.0;
-        this.mesh.material.emissiveIntensity = this.glowIntensity * pulse;
+        this.elapsedTime += deltaTime;
+        this.uniforms.time.value = this.elapsedTime;
 
-        // Slightly pulse the glow opacity
-        this.glowMesh.material.opacity = (this.opacity * 0.3) * (0.8 + Math.sin(time * 3) * 0.2);
+        const pulse = 0.85 + Math.sin(this.elapsedTime * 3.0) * 0.15;
+        if (this.glowMesh && this.glowMesh.material) {
+            this.glowMesh.material.opacity = this.opacity * 0.35 * pulse;
+            this.glowMesh.scale.x = pulse;
+            this.glowMesh.scale.z = pulse;
+        }
     }
 
     /**
@@ -160,10 +201,8 @@ export default class Connection {
      */
     setColor(color) {
         this.color = color;
-        if (this.mesh) {
-            this.mesh.material.color.setHex(color);
-            this.mesh.material.emissive.setHex(color);
-        }
+        this.uniforms.color.value.setHex(color);
+
         if (this.glowMesh) {
             this.glowMesh.material.color.setHex(color);
         }
