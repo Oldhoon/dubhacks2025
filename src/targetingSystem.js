@@ -140,6 +140,8 @@ class TargetingSystem {
             return;
         }
 
+
+        // test
         const catapultObject = selected.object;
 
         // Get target world position
