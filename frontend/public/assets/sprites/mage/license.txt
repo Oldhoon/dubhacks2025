@@ -1,0 +1,11 @@
+Model Information:
+* title:	Lizard mage animated
+* source:	https://sketchfab.com/3d-models/lizard-mage-animated-f1cd260da5534351adcbb109e98ac0b5
+* author:	Boolkas (https://sketchfab.com/Boolkas)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Lizard mage animated" (https://sketchfab.com/3d-models/lizard-mage-animated-f1cd260da5534351adcbb109e98ac0b5) by Boolkas (https://sketchfab.com/Boolkas) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

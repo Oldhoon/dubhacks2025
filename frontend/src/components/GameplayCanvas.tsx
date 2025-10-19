@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import PanelHeader from "./PanelHeader";
-import { createOrbGame } from "../game.js";
+import createGameExperience from "../gameScene/createGame.js";
 
 export type GameplayCanvasProps = {
   onAdd: (lines: string[] | string) => void;
@@ -12,19 +12,12 @@ export default function GameplayCanvas({ onAdd, onClose, onClear }: GameplayCanv
   const ptrId = useRef(1);
   const varId = useRef(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const onAddRef = useRef(onAdd);
-
-  useEffect(() => {
-    onAddRef.current = onAdd;
-  }, [onAdd]);
 
   useEffect(() => {
     const canvasEl = canvasRef.current;
     if (!canvasEl) return;
 
-    const dispose = createOrbGame(canvasEl, {
-      onAdd: lines => onAddRef.current?.(lines),
-    });
+    const dispose = createGameExperience(canvasEl);
 
     return () => {
       dispose?.();

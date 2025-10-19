@@ -1,4 +1,3 @@
-import React from "react";
 import PanelHeader from "./PanelHeader";
 
 export default function LevelInfo({

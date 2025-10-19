@@ -1,6 +1,7 @@
-declare module "./game.js" {
-  export function createOrbGame(
-    canvas: HTMLCanvasElement,
-    options?: { onAdd?: (lines: string[] | string) => void }
-  ): () => void;
+declare module "./gameScene/createGame.js" {
+  export default function createGameExperience(canvas: HTMLCanvasElement): () => void;
+}
+
+declare module "../gameScene/createGame.js" {
+  export default function createGameExperience(canvas: HTMLCanvasElement): () => void;
 }
