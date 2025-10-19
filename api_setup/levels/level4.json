@@ -1,0 +1,24 @@
+{
+  "referenceCode": [
+    "short trees[4] = {0, 1, 2, 3};",
+    "trees[0] = 0;",
+    "trees[1] = 1;",
+    "trees[2] = 2;",
+    "trees[3] = 3;",
+    "trees[1] = trees[3];",
+    "trees[3] = 1;"
+  ],
+  "characters": [
+    {
+      "name": "trees",
+      "type": "short[]",
+      "size": 4,
+      "value": [
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  ]
+}
