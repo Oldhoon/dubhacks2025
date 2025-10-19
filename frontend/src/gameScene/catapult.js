@@ -34,6 +34,7 @@ export default class Catapult {
         // Pointer connection (only one connection per catapult)
         this.connection = null;
         this.connectedTile = null;
+        this.codeHooks = null;
 
 
         loadGLTFAsync([this.modelPath], (models) => {
@@ -82,6 +83,10 @@ export default class Catapult {
             this.parent.remove(this.root);
             this.parent = null;
         }
+
+        if (this.codeHooks?.onDetach) {
+            this.codeHooks.onDetach(this);
+        }
     }
 
     get object3d() {
@@ -93,6 +98,10 @@ export default class Catapult {
      */
     setScene(scene) {
         this.scene = scene;
+    }
+
+    setCodeHooks(hooks = {}) {
+        this.codeHooks = hooks;
     }
 
     /**
@@ -121,6 +130,10 @@ export default class Catapult {
         // Create/update pointer connection to target tile
         if (options.targetTile) {
             this.createConnectionTo(options.targetTile);
+        }
+
+        if (this.codeHooks?.onFire) {
+            this.codeHooks.onFire(this, options.targetTile ?? null);
         }
 
         return stone;

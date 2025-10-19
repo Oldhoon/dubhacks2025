@@ -1,7 +1,21 @@
 declare module "./gameScene/createGame.js" {
-  export default function createGameExperience(canvas: HTMLCanvasElement): () => void;
+  import type { CodeEvent } from "./types";
+  export interface GameExperienceOptions {
+    onCodeEvent?: (event: CodeEvent) => void;
+  }
+  export default function createGameExperience(
+    canvas: HTMLCanvasElement,
+    options?: GameExperienceOptions
+  ): () => void;
 }
 
 declare module "../gameScene/createGame.js" {
-  export default function createGameExperience(canvas: HTMLCanvasElement): () => void;
+  import type { CodeEvent } from "../types";
+  export interface GameExperienceOptions {
+    onCodeEvent?: (event: CodeEvent) => void;
+  }
+  export default function createGameExperience(
+    canvas: HTMLCanvasElement,
+    options?: GameExperienceOptions
+  ): () => void;
 }
