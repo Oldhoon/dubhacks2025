@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
+import PortraitSlots from './portraitSlots.js';
+import SelectionManager from './selectionManager.js';
+import CameraController from './cameraController.js';
+import TargetingSystem from './targetingSystem.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 // Configuration constants
 const TERRAIN_SIZE = 20;
@@ -21,7 +26,7 @@ const camera = new THREE.PerspectiveCamera(
 
 // Camera 45° down, but not rotated sideways
 camera.position.set(0, 20, 15);  // angle downward
-camera.lookAt(0, 0, 0);
+camera.lookAt(0, 0, 4);
 scene.add(camera);
 
 // Renderer setup
@@ -29,6 +34,11 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Enable physically based rendering pipeline
+renderer.physicallyCorrectLights = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 const container = document.getElementById('game-container');
 if (!container) {
     throw new Error('Game container element with ID "game-container" not found');
@@ -37,11 +47,11 @@ container.appendChild(renderer.domElement);
 
 // Lighting setup
 // Ambient light for overall scene illumination
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambientLight);
 
 // Directional light (sun) with shadows
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 3.0);
 directionalLight.position.set(10, 20, 10);
 directionalLight.castShadow = true;
 directionalLight.shadow.camera.left = -20;
@@ -52,18 +62,50 @@ directionalLight.shadow.mapSize.width = 2048;
 directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
 
+// Image-based lighting environment for PBR
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const envMap = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environment = envMap;
+
 // Flat plane terrain (low-poly style)
-const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
-const planeMaterial = new THREE.MeshLambertMaterial({ 
+const planeGeometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE - 1, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
+const planeMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x3a9d3a,
+    roughness: 1.0,
+    metalness: 0.0,
     flatShading: true // Low-poly effect
 });
+// Apply base grass texture with repeating so blades are small
+const BASE_GRASS_PATH = 'assets/tiles/Texture/Base Grass IMG.png';
+const baseGrassTex = new THREE.TextureLoader().load(BASE_GRASS_PATH);
+baseGrassTex.wrapS = THREE.RepeatWrapping;
+baseGrassTex.wrapT = THREE.RepeatWrapping;
+baseGrassTex.colorSpace = THREE.SRGBColorSpace;
+baseGrassTex.magFilter = THREE.NearestFilter;
+baseGrassTex.minFilter = THREE.NearestFilter;
+// Repeat across the plane; tweak for desired density
+baseGrassTex.repeat.set(8, 8);
+planeMaterial.map = baseGrassTex;
+planeMaterial.needsUpdate = true;
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.rotation.x = -Math.PI / 2;
 plane.position.y = -0.05; // Slightly below tiles to avoid z-fighting
 plane.receiveShadow = true;
 scene.add(plane);
 
+// flat plane for displaying unit selection
+const selectionPlaneGeometry = new THREE.PlaneGeometry(17, 3);
+const selectionPlaneMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+}); 
+const selectionPlane = new THREE.Mesh(selectionPlaneGeometry, selectionPlaneMaterial);
+selectionPlane.position.set(0, 0.1, 11); 
+selectionPlane.rotation.x = -Math.PI / 2 + 0.5;
+
+scene.add(selectionPlane);
 
 // Add terrain block using Terrain class
 // const terrainBlock = new Terrain();
@@ -79,11 +121,29 @@ window.addEventListener('resize', () => {
 
 // Grass tiles across the entire grid
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
-const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: true };
-const createGrassTile = () => new Terrain(3, 0x3a9d3a, GRASS_TEXTURE_PATH, undefined, GRASS_ATLAS);
+const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: false };
+const createGrassTile = () => new Terrain(
+  3,
+  0x3a9d3a,
+  GRASS_TEXTURE_PATH,
+  undefined,
+  GRASS_ATLAS,
+  {
+    jagged: { enabled: true, amount: 0.45 },
+    topJagged: { enabled: true, amount: 0.12, innerRadius: 0.8 },
+    widthSegments: 14,
+    heightSegments: 12,
+    depthSegments: 14,
+    randomOrientation: false,
+    orientationSteps: 4,
+    sideTexturePath: 'assets/tiles/Texture/Side Cliff IMG.png'
+  }
+);
 const starterTile = createGrassTile();
+// Ensure the starter tile has no yaw so the catapult doesn't inherit rotation
+starterTile.mesh.rotation.y = 0;
 const catapult = new Catapult();
-catapult.attachTo(starterTile);
+
 
 
 
@@ -113,7 +173,8 @@ function gridToWorld(col, row) {
   };
 }
 
-// Build / place tiles
+// Build / place tiles and collect terrain meshes
+const terrainMeshes = [];
 for (let r = 0; r < ROWS; r++) {
   for (let c = 0; c < COLS; c++) {
     let tile = GRID[r][c];
@@ -132,11 +193,26 @@ for (let r = 0; r < ROWS; r++) {
 
     // add once
     scene.add(obj);
+    terrainMeshes.push(obj);
   }
 }
 
+// Initialize selection manager for object selection and highlighting
+const selectionManager = new SelectionManager(scene);
 
+// Initialize camera controller for perspective switching
+const cameraController = new CameraController(camera, selectionManager);
 
+// Initialize targeting system for catapult aiming
+const targetingSystem = new TargetingSystem(scene, {
+    GRID: GRID,
+    ROWS: ROWS,
+    COLS: COLS,
+    gridToWorld: gridToWorld
+});
+
+// Initialize portrait slots on the selection plane (after terrain is created)
+const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMeshes, selectionManager);
 
 
 
@@ -146,7 +222,13 @@ for (let r = 0; r < ROWS; r++) {
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
-    
+
+    // Update selection manager
+    selectionManager.update();
+
+    // Update targeting system (pulsing effect)
+    targetingSystem.update();
+
     renderer.render(scene, camera);
 }
 
