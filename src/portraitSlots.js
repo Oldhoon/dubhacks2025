@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import Sprite from './sprite.js';
 import Catapult from './catapult.js';
+import Necromancer from './necromancer.js';
+import Mage from './mage.js';
+import Lumberjack from './lumberjack.js';
 
 /**
  * PortraitSlots - Manages draggable portrait slots on the selection plane
@@ -26,7 +29,12 @@ class PortraitSlots {
         this.DRAG_OPACITY = 0.4;
 
         this.spawnedSprites = []; // Track sprites spawned on terrain
-        this.spawnedCatapults = []; // Track catapults spawned on terrain
+        this.spawnedUnitsByType = {
+            catapult: [],
+            necromancer: [],
+            mage: [],
+            lumberjack: []
+        }; // Track 3D units spawned on terrain
 
         this.createSlots();
         this.setupEventListeners();
@@ -198,24 +206,28 @@ class PortraitSlots {
                 terrainTile.getWorldPosition(tileWorldPosition);
 
                 // Check if this is the first portrait (catapult)
-                if (portraitIndex === 0) {
-                    // Spawn a catapult
-                    const catapult = new Catapult();
-                    catapult.attachTo(terrainTile);
+                const unitData = this.createUnitForPortrait(portraitIndex);
 
-                    // Track the spawned catapult
-                    this.spawnedCatapults.push(catapult);
+                if (unitData) {
+                    const { unit, type } = unitData;
+                    unit.attachTo(terrainTile);
 
-                    // Register with selection manager if available
+                    if (!this.spawnedUnitsByType[type]) {
+                        this.spawnedUnitsByType[type] = [];
+                    }
+                    const typeArray = this.spawnedUnitsByType[type];
+                    typeArray.push(unit);
+
                     if (this.selectionManager) {
-                        this.selectionManager.addSelectableObject(catapult.object3d, {
-                            type: 'catapult',
-                            index: this.spawnedCatapults.length - 1,
+                        this.selectionManager.addSelectableObject(unit.object3d, {
+                            type: type,
+                            index: typeArray.length - 1,
                             tile: terrainTile // Pass the tile reference for highlighting
                         });
                     }
 
-                    console.log(`Catapult spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                    const label = type.charAt(0).toUpperCase() + type.slice(1);
+                    console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
                 } else {
                     // Create sprite at the center of the tile for other portraits
                     const spritePosition = new THREE.Vector3(
@@ -290,10 +302,28 @@ class PortraitSlots {
             sprite.dispose();
         });
 
-        // Dispose spawned catapults
-        this.spawnedCatapults.forEach(catapult => {
-            catapult.detach();
+        // Detach spawned 3D units
+        Object.values(this.spawnedUnitsByType).forEach(units => {
+            units.forEach(unit => unit.detach());
         });
+    }
+
+    /**
+     * Create the appropriate unit for the given portrait index
+     */
+    createUnitForPortrait(portraitIndex) {
+        switch (portraitIndex) {
+            case 0:
+                return { unit: new Catapult(), type: 'catapult' };
+            case 1:
+                return { unit: new Necromancer(), type: 'necromancer' };
+            case 2:
+                return { unit: new Mage(), type: 'mage' };
+            case 3:
+                return { unit: new Lumberjack(), type: 'lumberjack' };
+            default:
+                return null;
+        }
     }
 }
 
