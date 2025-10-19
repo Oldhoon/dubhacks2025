@@ -32,13 +32,18 @@ interface ParsedCharacter {
   
   /** Mapping from variable type → sprite name */
   function getSpriteForType(type: string): string {
-    if (type.includes("int")) return "Necromancer";
-    if (type.includes("char")) return "Lumberjack";
-    if (type.includes("short")) return "Mage";
-    if (type.includes("*")) return "Catapult";
-    if (type.includes("[]")) return "Field";
-    return "Unknown";
+    // Pointers & arrays are always Catapults
+    if (type.includes("*") || type.includes("[]")) return "Catapult";
+  
+    const base = type.replace("*", "").replace("[]", "").trim();
+    switch (base) {
+      case "char":  return "Lumberjack";
+      case "short": return "Mage";
+      case "int":   return "Necromancer";
+      default:      return "Unknown";
+    }
   }
+  
   
   /** Generate grid coordinates (4×4) */
   function generatePositions(n: number, side: "left" | "right"): [number, number][] {
