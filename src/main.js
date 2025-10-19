@@ -122,7 +122,7 @@ window.addEventListener('resize', () => {
 
 // Grass tiles across the entire grid
 const GRASS_TEXTURE_PATH = 'assets/tiles/Texture/TX Tileset Grass.png';
-const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: true };
+const GRASS_ATLAS = { columns: 2, rows: 2, randomize: true, randomRotate: false };
 const createGrassTile = () => new Terrain(
   3,
   0x3a9d3a,
@@ -135,7 +135,7 @@ const createGrassTile = () => new Terrain(
     widthSegments: 14,
     heightSegments: 12,
     depthSegments: 14,
-    randomOrientation: true,
+    randomOrientation: false,
     orientationSteps: 4,
     sideTexturePath: 'assets/tiles/Texture/Side Cliff IMG.png'
   }
