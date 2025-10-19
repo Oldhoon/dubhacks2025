@@ -16,13 +16,14 @@ const PORTRAIT_TEXTURE_PATHS = [
  * PortraitSlots - Manages draggable portrait slots on the selection plane
  */
 class PortraitSlots {
-    constructor(selectionPlane, camera, scene, terrainMeshes = [], selectionManager = null, interactionElement = null) {
+    constructor(selectionPlane, camera, scene, terrainMeshes = [], selectionManager = null, interactionElement = null, unitHooks = {}) {
         this.selectionPlane = selectionPlane;
         this.camera = camera;
         this.scene = scene;
         this.terrainMeshes = terrainMeshes;
         this.selectionManager = selectionManager;
         this.interactionElement = interactionElement;
+        this.unitHooks = unitHooks;
         this.slots = [];
         this.portraits = [];
         this.dragging = null;
@@ -262,9 +263,10 @@ class PortraitSlots {
                         }
                     } else {
                         // Provide scene context for catapults prior to attachment
-                        if (type === 'catapult' && typeof unit.setScene === 'function') {
-                            unit.setScene(this.scene);
-                        }
+                    if (type === 'catapult' && typeof unit.setScene === 'function') {
+                        unit.setScene(this.scene);
+                        this.unitHooks?.onCatapultCreated?.(unit);
+                    }
 
                         unit.attachTo(terrainTile);
 

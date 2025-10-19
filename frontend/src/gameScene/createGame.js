@@ -11,6 +11,13 @@ const TERRAIN_SIZE = 50;
 const TERRAIN_SEGMENTS = 10;
 const TILE_SIZE = 4.5;
 const TILE_GAP = 0.75;
+const CODE_UNIT_TYPES = {
+    necromancer: 'int',
+    mage: 'short',
+    lumberjack: 'char'
+};
+const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+const POINTER_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 function computeRendererSize(canvas) {
     const parent = canvas.parentElement;
@@ -50,10 +57,158 @@ function gridToWorldFactory(rows, cols) {
     });
 }
 
-export function createGameExperience(canvas) {
+export function createGameExperience(canvas, options = {}) {
     if (!(canvas instanceof HTMLCanvasElement)) {
         throw new Error('createGameExperience requires a <canvas> element.');
     }
+
+    const { onCodeEvent } = options;
+
+    const emitCodeEvent = (event) => {
+        if (typeof onCodeEvent === 'function') {
+            onCodeEvent(event);
+        }
+    };
+
+    const codeBindings = new Map();
+    const pointerEntries = new Map(); // catapult -> { pointerName, terrain }
+    let nextPointerIndex = 0;
+    let nextVarIndex = 0;
+
+    const nextVarName = () => {
+        if (nextVarIndex < LETTERS.length) {
+            return LETTERS[nextVarIndex++];
+        }
+        return `v${nextVarIndex++}`;
+    };
+
+    const nextPointerName = () => {
+        if (nextPointerIndex < POINTER_LETTERS.length) {
+            return `ptr${POINTER_LETTERS[nextPointerIndex++]}`;
+        }
+        return `ptr${nextPointerIndex++}`;
+    };
+
+    const getPointerForTerrain = (terrain) => {
+        for (const entry of pointerEntries.values()) {
+            if (entry.terrain === terrain) {
+                return entry;
+            }
+        }
+        return null;
+    };
+
+    const resolveTerrainFromMesh = (mesh) => {
+        let current = mesh;
+        while (current) {
+            if (current.userData?.terrain) {
+                return current.userData.terrain;
+            }
+            current = current.parent ?? null;
+        }
+        return null;
+    };
+
+    const emitPointerEventForEntry = (entry) => {
+        if (!entry) return;
+        const targetBinding = entry.terrain ? codeBindings.get(entry.terrain) : null;
+        emitCodeEvent({
+            type: 'pointer',
+            id: entry.pointerName,
+            baseType: targetBinding ? targetBinding.baseType : 'void',
+            varName: targetBinding ? targetBinding.varName : '',
+            pointerName: entry.pointerName,
+            hasTarget: Boolean(targetBinding),
+            targetVarName: targetBinding ? targetBinding.varName : undefined
+        });
+    };
+
+    const updatePointersForTerrain = (terrain) => {
+        pointerEntries.forEach((entry) => {
+            if (entry.terrain === terrain) {
+                emitPointerEventForEntry(entry);
+            }
+        });
+    };
+
+    const handleCatapultFire = (catapult, targetMesh) => {
+        let entry = pointerEntries.get(catapult);
+        if (!entry) {
+            entry = {
+                pointerName: nextPointerName(),
+                terrain: null
+            };
+            pointerEntries.set(catapult, entry);
+        }
+
+        const terrain = resolveTerrainFromMesh(targetMesh);
+        entry.terrain = terrain ?? null;
+        emitPointerEventForEntry(entry);
+    };
+
+    const registerCatapult = (catapult) => {
+        if (typeof catapult.setCodeHooks === 'function') {
+            catapult.setCodeHooks({
+                onFire: (instance, targetMesh) => handleCatapultFire(instance, targetMesh),
+                onDetach: (instance) => {
+                    const entry = pointerEntries.get(instance);
+                    if (entry) {
+                        entry.terrain = null;
+                        emitPointerEventForEntry(entry);
+                    }
+                }
+            });
+        }
+    };
+
+    const handleUnitPlaced = (terrain, unitType) => {
+        const baseType = CODE_UNIT_TYPES[unitType];
+        if (!baseType) {
+            return;
+        }
+
+        const existing = codeBindings.get(terrain);
+        if (!existing) {
+            const varName = nextVarName();
+            const binding = { baseType, varName, count: 0 };
+            codeBindings.set(terrain, binding);
+            emitCodeEvent({
+                type: 'declare',
+                id: varName,
+                baseType,
+                varName
+            });
+        } else if (existing.baseType !== baseType) {
+            existing.baseType = baseType;
+            existing.count = 0;
+            emitCodeEvent({
+                type: 'declare',
+                id: existing.varName,
+                baseType,
+                varName: existing.varName
+            });
+        }
+
+        updatePointersForTerrain(terrain);
+    };
+
+    const handleAssetPlaced = (terrain, _assetType) => {
+        const binding = codeBindings.get(terrain);
+        if (!binding) {
+            return;
+        }
+
+        binding.count += 1;
+        emitCodeEvent({
+            type: 'update',
+            id: binding.varName,
+            baseType: binding.baseType,
+            varName: binding.varName,
+            count: binding.count
+        });
+
+        updatePointersForTerrain(terrain);
+    };
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -160,6 +315,12 @@ export function createGameExperience(canvas) {
             obj.position.set(x, obj.position.y, z);
             scene.add(obj);
             terrainMeshes.push(obj);
+            tile.setCodeHooks({
+                onUnitPlaced: handleUnitPlaced,
+                onAssetPlaced: handleAssetPlaced,
+                getBinding: (t) => codeBindings.get(t) ?? null,
+                getPointer: (t) => getPointerForTerrain(t)
+            });
         }
     }
 
@@ -250,7 +411,10 @@ export function createGameExperience(canvas) {
         scene,
         terrainMeshes,
         selectionManager,
-        renderer.domElement
+        renderer.domElement,
+        {
+            onCatapultCreated: registerCatapult
+        }
     );
 
     const clock = new THREE.Clock();
@@ -293,6 +457,8 @@ export function createGameExperience(canvas) {
         selectionManager.dispose();
         pmremGenerator.dispose();
         renderer.dispose();
+        codeBindings.clear();
+        pointerEntries.clear();
     };
 
     return dispose;

@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import PanelHeader from "./PanelHeader";
 import createGameExperience from "../gameScene/createGame.js";
+import type { CodeEvent } from "../types";
 
 export type GameplayCanvasProps = {
-  onAdd: (lines: string[] | string) => void;
+  onAdd: (event: CodeEvent) => void;
   onClose: () => void;
   onClear: () => void;
 };
@@ -13,7 +14,10 @@ export default function GameplayCanvas({
   onClose,
   onClear,
 }: GameplayCanvasProps) {
-  void onAdd;
+  const codeEventHandlerRef = useRef(onAdd);
+  useEffect(() => {
+    codeEventHandlerRef.current = onAdd;
+  }, [onAdd]);
   void onClose;
   void onClear;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -22,7 +26,11 @@ export default function GameplayCanvas({
     const canvasEl = canvasRef.current;
     if (!canvasEl) return;
 
-    const dispose = createGameExperience(canvasEl);
+    const dispose = createGameExperience(canvasEl, {
+      onCodeEvent: (event: CodeEvent) => {
+        codeEventHandlerRef.current?.(event);
+      },
+    });
 
     return () => {
       dispose?.();

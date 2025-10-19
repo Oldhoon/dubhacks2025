@@ -77,6 +77,7 @@ export default class Terrain {
         };
         this.unitOccupants = new Map();
         this.activeAnimations = [];
+        this.codeHooks = null;
 
         this.orientation = 0;
         this.randomOrientation = !!options.randomOrientation;
@@ -401,6 +402,8 @@ export default class Terrain {
             unit.__terrainRegistration = { terrain: this, type };
         }
 
+        this.codeHooks?.onUnitPlaced?.(this, type);
+
         return true;
     }
 
@@ -580,6 +583,8 @@ export default class Terrain {
                 });
             }
 
+            this.codeHooks?.onAssetPlaced?.(this, type);
+
             return instance;
         } catch (error) {
             console.error(`Failed to add ${type} to terrain grid:`, error);
@@ -605,6 +610,23 @@ export default class Terrain {
 
             mixer.update(delta);
         }
+    }
+
+    setCodeHooks(hooks = {}) {
+        this.codeHooks = hooks;
+    }
+
+    get codeBinding() {
+        return this.codeHooks?.getBinding?.(this) ?? null;
+    }
+
+    get pointerBinding() {
+        return this.codeHooks?.getPointer?.(this) ?? null;
+    }
+
+    get pointerName() {
+        const binding = this.pointerBinding;
+        return binding ? binding.pointerName : null;
     }
 
 }
