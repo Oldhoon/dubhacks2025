@@ -218,8 +218,18 @@ class PortraitSlots {
             if (terrainIntersects.length > 0) {
                 // Portrait dropped on terrain
                 const terrainHit = terrainIntersects[0];
-                const terrainTile = terrainHit.object;
-                const terrainData = terrainTile.userData?.terrain ?? null;
+                let terrainTile = terrainHit.object;
+                while (terrainTile && !terrainTile.userData?.terrain && terrainTile.parent) {
+                    terrainTile = terrainTile.parent;
+                }
+                const terrainData = terrainTile?.userData?.terrain ?? null;
+                if (!terrainData) {
+                    console.warn('Unable to identify target terrain tile for this drop.');
+                    this.dragging.position.copy(this.dragging.userData.homePosition);
+                    this.dragging.rotation.copy(this.dragging.userData.homeRotation);
+                    this.dragging = null;
+                    return;
+                }
                 const terrainMesh = terrainData?.mesh ?? terrainTile;
                 const portraitIndex = this.dragging.userData.slotIndex;
 
@@ -232,29 +242,52 @@ class PortraitSlots {
 
                 if (unitData) {
                     const { unit, type } = unitData;
-                    unit.attachTo(terrainTile);
-
                     const terrainInstance = terrainData;
-                    if (terrainInstance && typeof terrainInstance.registerUnit === 'function') {
-                        terrainInstance.registerUnit(type, unit);
+                    let placementAllowed = true;
+
+                    if (terrainInstance && typeof terrainInstance.canPlaceUnit === 'function') {
+                        placementAllowed = terrainInstance.canPlaceUnit(type);
                     }
 
-                    if (!this.spawnedUnitsByType[type]) {
-                        this.spawnedUnitsByType[type] = [];
-                    }
-                    const typeArray = this.spawnedUnitsByType[type];
-                    typeArray.push(unit);
+                    if (!placementAllowed) {
+                        console.warn(`Cannot place another ${type} on this tile.`);
+                        if (typeof unit.detach === 'function') {
+                            unit.detach();
+                        }
+                    } else {
+                        unit.attachTo(terrainTile);
 
-                    if (this.selectionManager) {
-                        this.selectionManager.addSelectableObject(unit.object3d, {
-                            type: type,
-                            index: typeArray.length - 1,
-                            tile: terrainTile // Pass the tile reference for highlighting
-                        });
+                        let registered = true;
+                        if (terrainInstance && typeof terrainInstance.registerUnit === 'function') {
+                            registered = terrainInstance.registerUnit(type, unit);
+                        }
+
+                        if (!registered) {
+                            placementAllowed = false;
+                            if (typeof unit.detach === 'function') {
+                                unit.detach();
+                            }
+                        }
                     }
 
-                    const label = type.charAt(0).toUpperCase() + type.slice(1);
-                    console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                    if (placementAllowed) {
+                        if (!this.spawnedUnitsByType[type]) {
+                            this.spawnedUnitsByType[type] = [];
+                        }
+                        const typeArray = this.spawnedUnitsByType[type];
+                        typeArray.push(unit);
+
+                        if (this.selectionManager) {
+                            this.selectionManager.addSelectableObject(unit.object3d, {
+                                type: type,
+                                index: typeArray.length - 1,
+                                tile: terrainTile // Pass the tile reference for highlighting
+                            });
+                        }
+
+                        const label = type.charAt(0).toUpperCase() + type.slice(1);
+                        console.log(`${label} spawned from portrait ${portraitIndex} at tile center`, tileWorldPosition);
+                    }
                 } else {
                     // Create sprite at the center of the tile for other portraits
                     const spritePosition = new THREE.Vector3(

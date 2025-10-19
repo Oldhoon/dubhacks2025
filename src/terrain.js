@@ -13,6 +13,11 @@ const DEFAULT_TOP_JAGGED = { enabled: false, amount: 0.15, innerRadius: 0.8 };
 const GRID_DIVISIONS = 4;
 const TERRAIN_GRID_OFFSET = 0.02;
 const LOADING_SLOT = Symbol('terrain-grid-loading');
+const UNIT_LIMITS = {
+    mage: 1,
+    necromancer: 1,
+    lumberjack: 1
+};
 const ASSET_PLACEMENT_RULES = {
     potion: {
         requires: ['mage']
@@ -374,7 +379,12 @@ export default class Terrain {
 
     registerUnit(type, unit) {
         if (!type || !unit) {
-            return;
+            return false;
+        }
+
+        if (!this.canPlaceUnit(type)) {
+            console.warn(`Cannot place another ${type} on this tile.`);
+            return false;
         }
 
         let set = this.unitOccupants.get(type);
@@ -390,6 +400,8 @@ export default class Terrain {
         if (typeof unit === 'object') {
             unit.__terrainRegistration = { terrain: this, type };
         }
+
+        return true;
     }
 
     unregisterUnit(unit, type) {
@@ -438,6 +450,17 @@ export default class Terrain {
             }
         }
         return types;
+    }
+
+    canPlaceUnit(type) {
+        const limit = UNIT_LIMITS[type];
+        if (typeof limit !== 'number') {
+            return true;
+        }
+
+        const set = this.unitOccupants.get(type);
+        const count = set ? set.size : 0;
+        return count < limit;
     }
 
     validateAssetPlacement(type) {
