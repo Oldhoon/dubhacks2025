@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import Terrain from './terrain.js';
 import Catapult from './catapult.js';
+import PortraitSlots from './portraitSlots.js';
+import SelectionManager from './selectionManager.js';
+import CameraController from './cameraController.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 // Configuration constants
@@ -193,8 +196,14 @@ for (let r = 0; r < ROWS; r++) {
   }
 }
 
+// Initialize selection manager for object selection and highlighting
+const selectionManager = new SelectionManager(scene);
 
+// Initialize camera controller for perspective switching
+const cameraController = new CameraController(camera, selectionManager);
 
+// Initialize portrait slots on the selection plane (after terrain is created)
+const portraitSlots = new PortraitSlots(selectionPlane, camera, scene, terrainMeshes, selectionManager);
 
 
 
@@ -204,7 +213,10 @@ for (let r = 0; r < ROWS; r++) {
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
-    
+
+    // Update selection manager (breathing effect)
+    selectionManager.update();
+
     renderer.render(scene, camera);
 }
 
