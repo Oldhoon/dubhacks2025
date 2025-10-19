@@ -21,7 +21,7 @@ const camera = new THREE.PerspectiveCamera(
 
 // Camera 45° down, but not rotated sideways
 camera.position.set(0, 20, 15);  // angle downward
-camera.lookAt(0, 0, 0);
+camera.lookAt(0, 0, 4);
 scene.add(camera);
 
 // Renderer setup
