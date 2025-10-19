@@ -1,5 +1,6 @@
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import PanelHeader from "./PanelHeader";
+import { createOrbGame } from "../game.js";
 
 export type GameplayCanvasProps = {
   onAdd: (lines: string[] | string) => void;
@@ -10,6 +11,26 @@ export type GameplayCanvasProps = {
 export default function GameplayCanvas({ onAdd, onClose, onClear }: GameplayCanvasProps) {
   const ptrId = useRef(1);
   const varId = useRef(1);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const onAddRef = useRef(onAdd);
+
+  useEffect(() => {
+    onAddRef.current = onAdd;
+  }, [onAdd]);
+
+  useEffect(() => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+
+    const dispose = createOrbGame(canvasEl, {
+      onAdd: lines => onAddRef.current?.(lines),
+    });
+
+    return () => {
+      dispose?.();
+    };
+  }, []);
+
   const nextPtr = () => `p${ptrId.current++}`;
   const nextVar = () => `x${varId.current++}`;
 
@@ -82,12 +103,8 @@ export default function GameplayCanvas({ onAdd, onClose, onClear }: GameplayCanv
     <div className="panel panel-col">
       <PanelHeader title="Gameplay / Controls" subtitle="Click actions → code is generated live" />
 
-      {/* Replace with your <canvas> / Three.js scene */}
       <div className="card gameplay">
-        <div className="center">
-          <div className="title">Gameplay Canvas</div>
-          <div className="subtle">Hook your game here; call onAdd(...) on events.</div>
-        </div>
+        <canvas ref={canvasRef} className="gameplay-canvas" />
       </div>
 
       <div className="card pad">
